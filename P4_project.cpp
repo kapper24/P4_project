@@ -10,6 +10,8 @@
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/io/grabber.h>
+#include <pcl/io/openni2_grabber.h>
+#include <pcl/visualization/cloud_viewer.h>
 
 
 using namespace std;
@@ -45,6 +47,13 @@ int main()
 	points = pc.calculate(depth);
 	cloud = points_to_pcl_no_texture(points);
 	
+
+
+	pcl::visualization::CloudViewer viewer("Simple Cloud Viewer");
+	viewer.showCloud(cloud);
+	while (!viewer.wasStopped())
+	{
+	}
 	//points.export_to_ply("pointcloud.ply", color);
 	const int w = color.as<rs2::video_frame>().get_width();
 	const int h = color.as<rs2::video_frame>().get_height();
@@ -63,7 +72,6 @@ int main()
 	}
 
 	cout << "Image is succusfully saved to a file" << endl;
-
 	cv::waitKey();
 	return 0;
 	
