@@ -7,9 +7,19 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <iostream>
+#include <pcl/point_types.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/io/grabber.h>
+
 
 using namespace std;
 using namespace cv;
+
+typedef pcl::PointXYZ WSPoint;
+typedef pcl::PointCloud<WSPoint> WSPointCloud;
+typedef WSPointCloud::Ptr WSPointCloudPtr;
+
+WSPointCloudPtr points_to_pcl_no_texture(const rs2::points& points);
 
 int main()
 {
@@ -21,17 +31,20 @@ int main()
 	rs2::pipeline pipe;
 	rs2::colorizer color_map;
 	rs2::config config;
+	WSPointCloudPtr cloud;
 
 	config.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_BGR8, 15);
 	// Start your pipeline somewhere around here
-	pipe.start(config);
+	pipe.start(/*config*/);
 	auto frames = pipe.wait_for_frames();
-	//auto depth = frames.get_depth_frame();
+	auto depth = frames.get_depth_frame();
 	auto color = frames.get_color_frame();
 	rs2::frame colorimg = frames.get_color_frame();
 
-	//pc.map_to(color);
-	//points = pc.calculate(depth);
+	pc.map_to(color);
+	points = pc.calculate(depth);
+	cloud = points_to_pcl_no_texture(points);
+	
 	//points.export_to_ply("pointcloud.ply", color);
 	const int w = color.as<rs2::video_frame>().get_width();
 	const int h = color.as<rs2::video_frame>().get_height();
@@ -56,3 +69,30 @@ int main()
 	
 
 }
+
+
+WSPointCloudPtr points_to_pcl_no_texture(const rs2::points& points)
+{
+
+	auto sp = points.get_profile().as<rs2::video_stream_profile>();
+	WSPointCloudPtr cloud(new WSPointCloud());
+
+	// Config of PCL Cloud object
+	cloud->width = static_cast<uint32_t>(sp.width());
+	cloud->height = static_cast<uint32_t>(sp.height());
+	cloud->is_dense = false;
+	cloud->points.resize(points.size());
+
+	auto vertices = points.get_vertices();
+
+	// Iterating through all points and setting XYZ coordinates
+	for (int i = 0; i < points.size(); ++i)
+	{
+		cloud->points[i].x = vertices[i].x;
+		cloud->points[i].y = vertices[i].y;
+		cloud->points[i].z = vertices[i].z;
+	}
+
+	return cloud;
+}
+
