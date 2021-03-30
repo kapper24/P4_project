@@ -361,3 +361,13 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/build/ZERO_CHECK.vcxproj.filters
+/build/ZERO_CHECK.vcxproj
+/build/P4_project.vcxproj.filters
+/build/P4_project.vcxproj
+/build/P4_project.sln
+/build/cmake_install.cmake
+/build/CMakeCache.txt
+/build/ALL_BUILD.vcxproj.filters
+/build/ALL_BUILD.vcxproj
+/build/CMakeFiles
