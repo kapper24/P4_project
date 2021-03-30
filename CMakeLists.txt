@@ -1,4 +1,7 @@
-﻿cmake_minimum_required (VERSION 2.6)
+﻿# CMakeList.txt : CMake project for P4_project, include source and define
+# project specific logic here.
+#
+cmake_minimum_required (VERSION 3.8)
 
 project ("P4_project")
 find_package(PCL 1.5 REQUIRED)
