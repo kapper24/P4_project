@@ -40,8 +40,9 @@ int main()
 		rs2::context ctx;
 		std::cout << "Waiting for device..." << std::endl;
 		while (true) {
-			for (auto&& dev : ctx.query_devices())
+			for (auto&& dev : ctx.query_devices()) {
 				return dev;
+			}
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		}
 	}();
@@ -50,12 +51,6 @@ int main()
 	std::cout << dev_.get_info(RS2_CAMERA_INFO_NAME) << " "
 		<< dev_.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER) << " "
 		<< dev_.get_info(RS2_CAMERA_INFO_PRODUCT_ID) << std::endl << std::endl;
-
-	/*std::cout << dev_.get_info(RS2_CAMERA_INFO_NAME) << " "
-
-		<< dev_.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER) << " "
-
-		<< dev_.get_info(RS2_CAMERA_INFO_PRODUCT_ID) << std::endl << std::endl;*/
 
 	auto sensors = dev_.query_sensors();
 	for (rs2::sensor& sensor : sensors) {
@@ -88,11 +83,11 @@ int main()
 		//config.enable_stream(RS2_STREAM_DEPTH, 424, 240, RS2_FORMAT_Z16, 90); //works fine!
 		//cfg.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 60);
 		////cfg.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 60);
-	
-	
+
+
 		//cfg.enable_stream(RS2_STREAM_DEPTH, 848, 480, RS2_FORMAT_Z16, 30);
 	//	cfg_.enable_stream(RS2_STREAM_DEPTH, 848, 100, RS2_FORMAT_Z16, 100); // USB3.0 only!
-	
+
 	// Declarations
 	rs2::pointcloud pc;
 	rs2::points points;
@@ -131,35 +126,35 @@ int main()
 		pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> cloud_color_h(0, 255, 0);
 		viewer->addPointCloud(cloud, cloud_color_h, "cloudname");
 
-		viewer->spinOnce(1, true); 
+		viewer->spinOnce(1, true);
 	}
-//	pcl::visualization::CloudViewer viewer("Simple Cloud Viewer");
-	//viewer.showCloud(cloud);
-	//while (!viewer.wasStopped())
-	//{
-	//}
-	//points.export_to_ply("pointcloud.ply", color);
-	//const int w = color.as<rs2::video_frame>().get_width();
-	//const int h = color.as<rs2::video_frame>().get_height();
-	//Mat image(Size(w, h), CV_8UC3, (void*)color.get_data(), Mat::AUTO_STEP);
+	//	pcl::visualization::CloudViewer viewer("Simple Cloud Viewer");
+		//viewer.showCloud(cloud);
+		//while (!viewer.wasStopped())
+		//{
+		//}
+		//points.export_to_ply("pointcloud.ply", color);
+		//const int w = color.as<rs2::video_frame>().get_width();
+		//const int h = color.as<rs2::video_frame>().get_height();
+		//Mat image(Size(w, h), CV_8UC3, (void*)color.get_data(), Mat::AUTO_STEP);
 
-	// Update the window with new data
-	//imshow("window_name", image);
+		// Update the window with new data
+		//imshow("window_name", image);
 
-	//bool isSuccess = imwrite("C:\\Users\\kaspe\\source\\repos\\P4_project\\out\\build\\x64-Debug\\MyImage.png", image); //write the image to a file as JPEG 
-//bool isSuccess = imwrite("D:/MyImage.png", image); //write the image to a file as PNG
-/*	if (isSuccess == false)
-	{
-		cout << "Failed to save the image" << endl;
-		cin.get(); //wait for a key press
-		return -1;
-	}
+		//bool isSuccess = imwrite("C:\\Users\\kaspe\\source\\repos\\P4_project\\out\\build\\x64-Debug\\MyImage.png", image); //write the image to a file as JPEG 
+	//bool isSuccess = imwrite("D:/MyImage.png", image); //write the image to a file as PNG
+	/*	if (isSuccess == false)
+		{
+			cout << "Failed to save the image" << endl;
+			cin.get(); //wait for a key press
+			return -1;
+		}
 
-	cout << "Image is succusfully saved to a file" << endl;
-	cv::waitKey();
-	*/
+		cout << "Image is succusfully saved to a file" << endl;
+		cv::waitKey();
+		*/
 	return 0;
-	
+
 
 }
 pcl::PointCloud<pcl::PointXYZ>::Ptr points_to_pcl(rs2::points pts)
@@ -182,7 +177,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr points_to_pcl(rs2::points pts)
 	//mu_cloud_.lock();
 //	cloud_ = cloud;
 	//mu_cloud_.unlock();
-	
+
 }
 /*
 WSPointCloudPtr points_to_pcl_no_texture(const rs2::points& points)
