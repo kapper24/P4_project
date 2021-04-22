@@ -1,28 +1,72 @@
-﻿# CMakeList.txt : CMake project for P4_project, include source and define
-# project specific logic here.
-#
-cmake_minimum_required (VERSION 3.8)
+﻿cmake_minimum_required(VERSION 3.8)
 
-project ("P4_project")
+project("P4_project")
+
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets REQUIRED)
 find_package(PCL 1.5 REQUIRED)
+
+# Add source to this project's executable.
+set(MUJOCO_MJPRO_PATH "C://Users/Melvin/Documents/mujoco200_win64/bin")
+set(MUJOCO_MJPRO_INCLUDE "C://Users/Melvin/Documents/mujoco200_win64/include")
+
+#Options
+set(SRCS main.cpp)
+set(BIN_NAME mujoco_exe)
+
+#Paths
+include_directories(${MUJOCO_MJPRO_INCLUDE})
+link_directories(${MUJOCO_MJPRO_PATH})
 
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
 
-
-#find_package(realsense2)
-#include_directories(${realsense2_INCLUDE_DIRS})
-#link_directories(${realsense2_LIBRARY_DIRS})
-#target_link_libraries(P4_project ${realsense2_LIBRARY})
-
-set(REALSENSE_INSTALL_PATH CACHE PATH "C:/Program Files (x86)/Intel RealSense SDK 2.0")
+set(REALSENSE_INSTALL_PATH CACHE PATH "C:/Program Files(x86)/IntelRealSenseSDK2.0")
 include_directories(${REALSENSE_INSTALL_PATH}/include/)
 link_directories(${REALSENSE_INSTALL_PATH}/lib/x64)
 set(REALSENSE_LIBS "realsense2.lib")
 link_libraries(${REALSENSE_LIBS})
 
-add_executable (P4_project P4_project.cpp)
 
-target_link_libraries (P4_project ${PCL_LIBRARIES})
+set(PROJECT_SOURCES
+        P4_project.cpp
+        mainwindow.cpp
+        mainwindow.h
+        mainwindow.ui
+)
+
+if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
+    qt_add_executable(P4_project
+        ${PROJECT_SOURCES}
+    )
+else()
+    if(ANDROID)
+        add_library(P4_project SHARED
+            ${PROJECT_SOURCES}
+        )
+    else()
+        add_executable(P4_project
+            ${PROJECT_SOURCES}
+        )
+    endif()
+endif()
+
+
+target_link_libraries(
+P4_project
+PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
+${PCL_LIBRARIES}
+"mujoco200.dll"
+"glfw3.dll"
+)

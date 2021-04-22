@@ -1,0 +1,28 @@
+<mujoco>
+	<include file="hello.xml"/>
+	<include file="assets.xml"/>
+<asset>
+		<mesh name="wineglass" 	file="wineglass.stl" scale="0.0014 0.0014 0.0014"/>
+		<mesh name="cup" 	file="cup.stl" scale="0.0013 0.0013 0.0013"/>
+		<mesh name="can" 	file="can.stl" scale="0.046 0.046 0.03"/>
+	</asset>	
+    <worldbody>
+		<geom type="plane" material="MatPlane" pos=".6 0 0.1" zaxis="-1 0 1" size=".1 .5 .025"/>
+		<geom type="plane" material="MatPlane" pos="-.6 0 0.1" zaxis="1 0 1" size=".1 .5 .025"/>
+		<geom type="plane" material="MatPlane" pos="0 .6 0.1" zaxis="0 -1 1" size=".5 .1 .025"/>
+		<geom type="plane" material="MatPlane" pos="0 -.6 0.1" zaxis="0 1 1" size=".5 .1 .025"/>
+
+        <body name="wine" pos="0 0.2 0.1">
+            <geom type="mesh" mesh="wineglass" material="MatWood"/>
+            <joint class="free"/>
+        </body>
+	<body name="beer" pos="0 0.4 0.1">
+            <geom type="mesh" mesh="can" material="MatWood"/>
+            <joint class="free"/>
+        </body>
+	<body name="coffee" pos="0 0 0.1">
+            <geom type="mesh" mesh="cup" material="MatWood"/>
+            <joint class="free"/>
+        </body>
+    </worldbody>
+</mujoco>

@@ -1,0 +1,78 @@
+Tue Mar 30 12:15:24 2021
+ERROR: Could not open activation key file mjkey.txt
+
+Tue Mar 30 13:43:33 2021
+ERROR: Load model error: Error: could not open STL file 'C:/Users/kaspe/source/repos/mujoco/mesh/index0.stl'
+Object name = index0, id = 0, line = 52, column = 9
+
+Tue Mar 30 13:44:25 2021
+ERROR: Load model error: Error: PNG file load error 'empty input or file doesn't exist' in texture id = 2
+Object name = skin, id = 2, line = 81, column = 9
+
+Tue Apr  6 11:25:01 2021
+ERROR: Load model error: XML Error: invalid keyword: 'cyllinder'
+Element 'geom', line 22, column 13
+
+
+Tue Apr  6 11:25:16 2021
+ERROR: Load model error: XML Error: invalid keyword: 'cyllinder'
+Element 'geom', line 22, column 13
+
+
+Mon Apr 12 13:52:44 2021
+ERROR: Load model error: XML Error: invalid keyword: 'wineglass'
+Element 'geom', line 14, column 13
+
+
+Mon Apr 12 13:53:23 2021
+ERROR: Load model error: XML Error: invalid keyword: 'wineglass'
+Element 'geom', line 14, column 13
+
+
+Mon Apr 12 14:12:02 2021
+WARNING: Pre-allocated contact buffer is full. Increase nconmax above 150. Time = 50.2780.
+
+Mon Apr 12 14:12:02 2021
+WARNING: Pre-allocated constraint buffer is full. Increase njmax above 600. Time = 50.2780.
+
+Mon Apr 12 14:12:02 2021
+WARNING: Nan, Inf or huge value in QACC at DOF 0. The simulation is unstable. Time = 50.2860.
+
+Tue Apr 13 06:28:33 2021
+ERROR: Load model error: Error: number of faces should be between 1 and 200000 in STL file 'C:/Users/kaspe/source/repos/mujoco/mesh/wineglass.stl'; perhaps this is an ASCII file?
+Object name = wineglass, id = 24, line = 5, column = 9
+
+Tue Apr 13 06:29:13 2021
+ERROR: Load model error: Error: number of faces should be between 1 and 200000 in STL file 'C:/Users/kaspe/source/repos/mujoco/mesh/wineglass.stl'; perhaps this is an ASCII file?
+Object name = wineglass, id = 24, line = 5, column = 9
+
+Tue Apr 13 06:31:46 2021
+WARNING: Nan, Inf or huge value in QACC at DOF 28. The simulation is unstable. Time = 94.9900.
+
+Tue Apr 13 08:43:46 2021
+WARNING: Nan, Inf or huge value in QACC at DOF 28. The simulation is unstable. Time = 93.6360.
+
+Tue Apr 13 09:25:20 2021
+ERROR: Load model error: Error: number of faces should be between 1 and 200000 in STL file 'C:/Users/kaspe/source/repos/mujoco/mesh/wineglass.stl'; perhaps this is an ASCII file?
+Object name = wineglass, id = 24, line = 5, column = 9
+
+Tue Apr 13 10:45:53 2021
+ERROR: Load model error: Error: eigenvalue of mesh inertia too small: can
+Object name = can, id = 26, line = 7, column = 9
+
+Tue Apr 13 10:46:20 2021
+ERROR: Load model error: Error: eigenvalue of mesh inertia too small: can
+Object name = can, id = 26, line = 7, column = 9
+
+Tue Apr 13 10:46:40 2021
+ERROR: Load model error: Error: eigenvalue of mesh inertia too small: can
+Object name = can, id = 26, line = 7, column = 9
+
+Tue Apr 13 10:46:49 2021
+ERROR: Load model error: Error: eigenvalue of mesh inertia too small: can
+Object name = can, id = 26, line = 7, column = 9
+
+Fri Apr 16 14:04:59 2021
+ERROR: Load model error: Error: mesh 'can' not found in geom 40
+Object name = , id = 40, line = 23, column = 13
+

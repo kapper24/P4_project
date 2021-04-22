@@ -1,0 +1,29 @@
+<mujoco>
+	<include file="hello.xml"/>
+	<include file="assets.xml"/>
+<asset>
+
+		<mesh name="wineglassbottom" 	file="wineglassbottom.stl" scale="0.0014 0.0014 0.0014"/>
+		<mesh name="wineglassmiddle" 	file="wineglassfoot.stl" scale="0.0014 0.0014 0.0014"/>
+		<mesh name="wineglasstop" 	file="wineglasstop.stl" scale="0.0014 0.0014 0.0014"/>
+		<mesh name="can" 	file="can.stl" scale="0.046 0.046 0.03"/>
+	</asset>	
+    <worldbody>
+		<geom type="plane" material="MatPlane" pos=".6 0 0.1" zaxis="-1 0 1" size=".1 .5 .025"/>
+		<geom type="plane" material="MatPlane" pos="-.6 0 0.1" zaxis="1 0 1" size=".1 .5 .025"/>
+		<geom type="plane" material="MatPlane" pos="0 .6 0.1" zaxis="0 -1 1" size=".5 .1 .025"/>
+		<geom type="plane" material="MatPlane" pos="0 -.6 0.1" zaxis="0 1 1" size=".5 .1 .025"/>
+<body>
+<geom type="mesh" mesh="wineglassbottom" pos="0 0 0.07" euler="0 0 0"/>
+<joint class="free"/>
+<geom type="mesh" mesh="wineglassmiddle" pos="0 0 0.07" euler="0 0 10"/>
+<geom type="mesh" mesh="wineglasstop" pos="0 0 0.07" euler="0 0 10"/>
+</body>
+
+<body name="beer" pos="0 0.4 0.1">
+            <geom type="mesh" mesh="can" material="MatWood"/>
+            <joint class="free"/>
+        </body>
+
+    </worldbody>
+	</mujoco>
