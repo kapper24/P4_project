@@ -1,4 +1,3 @@
-
 #include <QPushButton>
 #include <QLabel>
 #include <QVBoxLayout>
@@ -8,14 +7,6 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-
-#include "mujoco.h"
-#include "glfw3.h"
-#include "stdio.h"
-#include "stdlib.h"
-#include "string.h"
-#include "vector"
-#include "iostream"
 
 #include <math.h>
 #include <librealsense2/rs.hpp>
@@ -48,35 +39,24 @@
 #include <pcl/sample_consensus/sac_model_line.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
-//using namespace std;
-//using namespace cv;
-
-// data structures
-int n = 1;
-mjModel* m = NULL;                  // MuJoCo model
-mjData* d = NULL;                   // MuJoCo data
-mjvCamera cam;                      // abstract camera
-mjvOption opt;                      // visualization options
-mjvScene scn;                       // abstract scene
-mjrContext con;                     // custom GPU context
-std::vector<float> handpos = { 0, 0, 0 };
-std::vector<float> wineglass = { -2.8, 0, 0, 0.4, 0.53, 0, -0.33, 0.44, 0.30, 0.37, 1.6, 0, 1.6 };
-std::vector<float> cup = { -1.63, 0.40, 0.32, 0.4, 0.57, 0, 0, 0.34, 0.27, 1.6, 1.6, 0, 1.6 };
-std::vector<float> can = { -1.54, 0, -0.32, 1.55, 0.66, 0, 0, 0.07, 0.24, 0.37, 0.34, 0, 0.24 };
-std::vector<float> targetpos;
-int aMujoco = 1;
-bool keychange = 1;
-GLFWwindow* Gwindow;
-// mouse interaction
-bool button_left = false;
-bool button_middle = false;
-bool button_right = false;
-double lastx = 0;
-double lasty = 0;
-
 typedef pcl::PointXYZ WSPoint;
 typedef pcl::PointCloud<WSPoint> WSPointCloud;
 typedef WSPointCloud::Ptr WSPointCloudPtr;
+//Globalt:
+float firstMaxX;
+float firstMinX;
+float firstMaxY;
+float firstMinY;
+
+float objectMaxX = -10;
+float objectMinX = -60;
+float objectMaxY = -10;
+float objectMinY = -60;
+
+pcl::PointXYZ minPt;
+pcl::PointXYZ maxPt;
+bool startQuit = false;
+int openclose = 0;
 //Global pcl Variables
 std::string serialnumber_;
 pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
@@ -105,112 +85,6 @@ objectSpecs fitWine(WSPointCloudPtr centerObject);
 objectSpecs fitCup(WSPointCloudPtr centerObject);
 
 
-// keyboard callback
-void keyboard(GLFWwindow* window, int key, int scancode, int act, int mods)
-{
-	// backspace: reset simulation
-	if (act == GLFW_PRESS && key == GLFW_KEY_BACKSPACE)
-	{
-		mj_resetData(m, d);
-		mj_forward(m, d);
-		handpos = { 0, 0, 0 };
-	}
-	if (act == GLFW_PRESS && key == GLFW_KEY_A)
-	{
-		handpos[0] -= 75;
-	}
-	if (act == GLFW_PRESS && key == GLFW_KEY_D)
-	{
-		handpos[0] += 75;
-	}
-	if (act == GLFW_PRESS && key == GLFW_KEY_W)
-	{
-		handpos[1] += 75;
-	}
-	if (act == GLFW_PRESS && key == GLFW_KEY_S)
-	{
-		handpos[1] -= 75;
-	}
-	if (act == GLFW_PRESS && key == GLFW_KEY_Q)
-	{
-		handpos[2] -= 75;
-	}
-	if (act == GLFW_PRESS && key == GLFW_KEY_E)
-	{
-		handpos[2] += 75;
-	}
-	if (act == GLFW_PRESS && key == GLFW_KEY_1)
-	{
-		aMujoco = 1;
-		keychange = 1;
-	}
-	if (act == GLFW_PRESS && key == GLFW_KEY_2)
-	{
-		aMujoco = 2;
-		keychange = 1;
-	}
-	if (act == GLFW_PRESS && key == GLFW_KEY_3)
-	{
-		aMujoco = 3;
-		keychange = 1;
-	}
-}
-
-
-// mouse button callback
-void mouse_button(GLFWwindow* window, int button, int act, int mods)
-{
-	// update button state
-	button_left = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
-	button_middle = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS);
-	button_right = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS);
-
-	// update mouse position
-	glfwGetCursorPos(window, &lastx, &lasty);
-}
-
-
-// mouse move callback
-void mouse_move(GLFWwindow* window, double xpos, double ypos)
-{
-	// no buttons down: nothing to do
-	if (!button_left && !button_middle && !button_right)
-		return;
-
-	// compute mouse displacement, save
-	double dx = xpos - lastx;
-	double dy = ypos - lasty;
-	lastx = xpos;
-	lasty = ypos;
-
-	// get current window size
-	int width, height;
-	glfwGetWindowSize(window, &width, &height);
-
-	// get shift key state
-	bool mod_shift = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ||
-		glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS);
-
-	// determine action based on mouse button
-	mjtMouse action;
-	if (button_right)
-		action = mod_shift ? mjMOUSE_MOVE_H : mjMOUSE_MOVE_V;
-	else if (button_left)
-		action = mod_shift ? mjMOUSE_ROTATE_H : mjMOUSE_ROTATE_V;
-	else
-		action = mjMOUSE_ZOOM;
-
-	// move camera
-	mjv_moveCamera(m, action, dx / height, dy / height, &scn, &cam);
-}
-
-
-// scroll callback
-void scroll(GLFWwindow* window, double xoffset, double yoffset)
-{
-	// emulate vertical mouse motion = 5% of window height
-	mjv_moveCamera(m, mjMOUSE_ZOOM, 0, -0.05 * yoffset, &scn, &cam);
-}
 
 MainWindow::MainWindow(QWidget* parent)
 	: QMainWindow(parent)
@@ -220,7 +94,7 @@ MainWindow::MainWindow(QWidget* parent)
 	ui_OpenCloseButton = findChild<QPushButton*>("OpenCloseButton");
 	ui_StartQuitButton = findChild<QPushButton*>("StartQuitButton");
 	ui_GraspGorithmLabel = findChild<QLabel*>("GraspGorithmLabel");
-
+/*
 #pragma region find devices
 	rs2::device dev_ = [] {
 		rs2::context ctx;
@@ -277,7 +151,7 @@ MainWindow::MainWindow(QWidget* parent)
 			std::cout << "  stream " << profile.stream_name() << " " << profile.stream_type() << " " << profile.format() << " " << " " << profile.fps() << std::endl;
 		}
 	}
-*/
+	
 	std::cout << "Opening pipeline for " << serialnumber_ << std::endl;
 	config.enable_device(serialnumber_);
 
@@ -290,42 +164,11 @@ MainWindow::MainWindow(QWidget* parent)
 	//cfg_.enable_stream(RS2_STREAM_DEPTH, 848, 100, RS2_FORMAT_Z16, 100); // USB3.0 only!
 #pragma endregion
 
-#pragma region initMujoco
-	// activate software
-	mj_activate("C:\\Users\\Melvin\\Documents\\mujoco Licesne\\mjkey.txt");
-	m = mj_loadXML("C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\objects.xml", 0, error, 1000);
-	if (!m)
-		mju_error_s("Load model error: %s", error);
-	d = mj_makeData(m);
-	if (!glfwInit())
-		mju_error("Could not initialize GLFW");
-	Gwindow = glfwCreateWindow(1200, 900, "Demo", NULL, NULL);
-	glfwMakeContextCurrent(Gwindow);
-	glfwSwapInterval(1);
-
-	// initialize visualization data structures
-	mjv_defaultCamera(&cam);
-	mjv_defaultOption(&opt);
-	mjv_defaultScene(&scn);
-	mjr_defaultContext(&con);
-
-	// create scene and context
-	mjv_makeScene(m, &scn, 2000);
-	mjr_makeContext(m, &con, mjFONTSCALE_150);
-	// install GLFW mouse and keyboard callbacks
-	glfwSetKeyCallback(Gwindow, keyboard);
-	glfwSetCursorPosCallback(Gwindow, mouse_move);
-	glfwSetMouseButtonCallback(Gwindow, mouse_button);
-#pragma endregion
-
-	QTimer* PCLtimer = new QTimer(this);
+	PCLtimer = new QTimer(this);
 	connect(PCLtimer, SIGNAL(timeout()), this, SLOT(PCLupdate()));
-	PCLtimer->start();
+	//PCLtimer->start();
 
-	//QTimer* Mujocotimer = new QTimer(this);
-	//connect(Mujocotimer, SIGNAL(timeout()), this, SLOT(MujocoUpdate()));
-	//Mujocotimer->start();
-
+	*/
 	QMetaObject::connectSlotsByName(this);
 	//PCLupdate();
 }
@@ -336,8 +179,21 @@ MainWindow::~MainWindow()
 }
 void MainWindow::on_OpenCloseButton_clicked()
 {
-	std::cout << "clicked open" << std::endl;
-
+	//std::cout << "clicked open" << std::endl;
+	openclose++;
+	//C:\\Users\\Melvin\\Documents\\GUI_test\\Read.txt
+	std::ofstream send("C:\\Users\\Melvin\\Documents\\GUI_test\\Read.txt", std::ofstream::trunc);
+	//std::ofstream send("C:\\Users\\Melvin\\Documents\\P4_project\\Read.txt", std::ofstream::trunc);
+	
+	if (openclose == 2) {
+		send << "Grasp 2\n" << "diameter " << "\n" << "Open";
+		std::cout << "open";
+		openclose = -2;
+	}
+	else if (openclose == 0){
+		send << "Grasp 2\n" << "Close";
+		std::cout << "close";
+	}
 	//Get grip information
 	// Open/close hand
 	//
@@ -345,6 +201,15 @@ void MainWindow::on_OpenCloseButton_clicked()
 void MainWindow::on_StartQuitButton_clicked()
 {
 	std::cout << "clicked Start" << std::endl;
+	startQuit = !startQuit;
+	if (startQuit)
+	{
+	//system("C:\\Users\\Melvin\\Documents\\GUI_test\\build\\Debug\\GUI_test.exe");
+		//PCLtimer->start();
+	}
+	else {
+		QApplication::quit();
+	}
 	//Launch python program
    //turn on camera and PCL
    //close program
@@ -387,34 +252,34 @@ void MainWindow::PCLupdate()
 			///////////// return object classification from google here ///////////////////////
 			std::string line;
 
-			std::ifstream f("C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\Read.txt");
+			std::ifstream f("C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\ReadfromPython.txt");
+			objectSpecs objectInfo;
 			while (line == "") {
 				while (getline(f, line))
 				{
 					//std::ofstream send("C:\\Users\\Melvin\\Documents\\P4_project\\Read.txt", std::ofstream::trunc);
 					//send << "1 \n";
+					if (line == "Grasp 1") {
+
+						objectInfo = fitCylinder(centerObject);
+						std::cout << line << std::endl;
+					}
+					else if (line == "Grasp 2") {
+
+						objectInfo = fitWine(centerObject);
+					}
+					else if (line == "Grasp 3") {
+
+						objectInfo = fitCup(centerObject);
+					}
+					else if (line == "NULL") {
+
+						objectInfo = fitCylinder(centerObject);
+						std::cout << line << std::endl;
+					}
 				}
 			}
-			objectSpecs objectInfo;
-
-			if (line == "Grasp 1") {
-				
-				objectInfo = fitCylinder(centerObject);
-				std::cout << line << std::endl;
-			}
-			else if (line == "Grasp 2") {
-				
-				objectInfo = fitWine(centerObject);
-			}
-			else if (line == "Grasp 3") {
-				
-				objectInfo = fitCup(centerObject);
-			}
-			else if (line == "NULL") {
-				
-				objectInfo = fitCylinder(centerObject);
-				std::cout << line << std::endl;
-			}
+			
 			filteredObject = objectInfo.objectCloud;
 			orientation = objectInfo.orientation;
 			diameter = objectInfo.diameter;
@@ -429,109 +294,6 @@ void MainWindow::PCLupdate()
 
 		viewer->spinOnce(1, true);
 	}
-
-
-void MainWindow::MujocoUpdate()
-{
-	// activate software
-	//mj_activate("C:\\Users\\Melvin\\Documents\\mujoco Licesne\\mjkey.txt");
-	if (glfwWindowShouldClose(Gwindow)) {
-		//free visualization storage
-		mjv_freeScene(&scn);
-		mjr_freeContext(&con);
-
-		// free MuJoCo model and data, deactivate
-		mj_deleteData(d);
-		mj_deleteModel(m);
-		mj_deactivate();
-
-		// terminate GLFW (crashes with Linux NVidia drivers)
-#if defined(__APPLE__) || defined(_WIN32)
-		glfwTerminate();
-#endif
-	}
-	else {
-		// advance interactive simulation for 1/60 sec
-		//  Assuming MuJoCo can simulate faster than real-time, which it usually can,
-		//  this loop will finish on time for the next frame to be rendered at 60 fps.
-		//  Otherwise add a cpu timer and exit this loop when it is time to render.
-		mjtNum simstart = d->time;
-		while (d->time - simstart < 1 / 60.0)
-			mj_step(m, d);
-
-		switch (n)
-		{
-		case 1:
-			targetpos = can;
-			keychange = 0;
-			break;
-		case 2:
-			targetpos = wineglass;
-			keychange = 0;
-			break;
-		case 3:
-			targetpos = cup;
-			keychange = 0;
-			break;
-		default:
-			break;
-		}
-		/*if (keychange == 1) {
-			switch (aMujoco)
-			{
-			case 2:
-				targetpos = wineglass;
-				keychange = 0;
-				break;
-			case 3:
-				targetpos = cup;
-				keychange = 0;
-				break;
-			case 1:
-				targetpos = can;
-				keychange = 0;
-				break;
-			default:
-				break;
-			}
-		}*/
-		for (int i = 0; i < 13; i++)
-		{
-
-			if (d->ctrl[i] > targetpos[i]) {
-				d->ctrl[i] -= 0.01;
-			}
-			if (d->ctrl[i] < targetpos[i]) {
-				d->ctrl[i] += 0.01;
-			}
-		}
-
-		for (int j = 13; j < 16; j++) {
-			if (d->ctrl[j] > handpos[j - 13]) {
-				d->ctrl[j] -= 4;
-			}
-			if (d->ctrl[j] < handpos[j - 13]) {
-				d->ctrl[j] += 4;
-			}
-		}
-
-
-		// get framebuffer viewport
-		mjrRect viewport = { 0, 0, 0, 0 };
-		glfwGetFramebufferSize(Gwindow, &viewport.width, &viewport.height);
-
-		// update scene and render
-		mjv_updateScene(m, d, &opt, NULL, &cam, mjCAT_ALL, &scn);
-		mjr_render(viewport, &scn, &con);
-
-		// swap OpenGL buffers (blocking call due to v-sync)
-		glfwSwapBuffers(Gwindow);
-
-		// process pending GUI events, call GLFW callbacks
-		glfwPollEvents();
-
-	}
-}
 
 WSPointCloudPtr points2cloud(rs2::points pts)
 {
@@ -561,6 +323,12 @@ WSPointCloudPtr filterCloud(WSPointCloudPtr cloud) {
 	vox.setInputCloud(cloud);
 	vox.setLeafSize(0.004f, 0.004f, 0.004f); // sets distance between points shown
 	vox.filter(*cloud);
+	pcl::getMinMax3D(*cloud, minPt, maxPt);
+	firstMaxX = abs(maxPt.x);
+	firstMinX = abs(minPt.x);
+	firstMaxY = abs(maxPt.y);
+	firstMinY = abs(minPt.y);
+
 	return cloud;
 }
 WSPointCloudPtr extractObject(WSPointCloudPtr filteredCloud) {
@@ -683,7 +451,11 @@ WSPointCloudPtr getCenterObject(WSPointCloudPtr objectCloud) {
 	// cout << "objektet er: " << objectNumber << "dist er: " << smallestValue << endl;
 
 	*centerObject = *objects[objectNumber];
-
+	pcl::getMinMax3D(*centerObject, minPt, maxPt);
+	objectMaxX = maxPt.x;
+	objectMinX = minPt.x;
+	objectMaxY = maxPt.y;
+	objectMinY = minPt.y;
 	return centerObject;
 }
 objectSpecs fitCylinder(WSPointCloudPtr centerObject) {
@@ -973,57 +745,59 @@ void saveRGB2File(std::string serialnumber_, WSPointCloudPtr centerObject) {
 
 
 	/////////// Benjas kode /////////////////////
-	WSPoint minPt;
-	WSPoint maxPt;
-	pcl::getMinMax3D(*centerObject, minPt, maxPt);
+	float ratioMaxX = objectMaxX / firstMaxX;
+	float ratioMinX = objectMinX / firstMinX;
+	float ratioMaxY = objectMaxY / firstMaxY;
+	float ratioMinY = objectMinY / firstMinY;
 
-	int pixelScalar = 3; //Den her beskriver størrelsesforholdet mellem point cloud og RGB billedet
-	float realMaxX = 212; //Her regnes der ift centrum af point cloud.
-	float realMinX = 212; //Hvilket betyder at min og max er ift objektet
-	float realMaxY = 120; //ikke pixel-værdierne
-	float realMinY = 120;
+	//std::cout << "Ratio " << ratioMaxX << " " << ratioMinX << " " << ratioMaxY << " " << ratioMinY << std::endl;
 
+	float pixelMaxX = abs(640 + (640 * ratioMaxX));
+	float pixelMinX = abs(640 + (640 * ratioMinX));
+	float pixelMaxY = abs(360 + (360 * ratioMaxY));
+	float pixelMinY = abs(360 + (360 * ratioMinY));
 
-	realMaxX = (realMaxX + ((realMaxX * 2) * (3 * maxPt.x))) * pixelScalar; //centrum + Xprocent ud af rgb Xaksen
-	realMinX = (realMinX + ((realMinX * 2) * (3 * minPt.x))) * pixelScalar;
-	realMaxY = (realMaxY + ((realMaxY * 2) * (3 * maxPt.y))) * pixelScalar;
-	realMinY = (realMinY + ((realMinY * 2) * (3 * minPt.y))) * pixelScalar;
+	//std::cout << "Pixel " << pixelMaxX << " " << pixelMinX << " " << pixelMaxY << " " << pixelMinY << std::endl;
 
 	float ROIscalar = 0.2; //Vi vil gerne have 20% af objektet
-	float ROIscalarUp = 1 + ROIscalar; //Objektet + 20% af objektet
 
-	int width = abs(realMaxX - realMinX) * ROIscalarUp; //Bredden af objektet
-	int height = abs(realMaxY - realMinY) * ROIscalarUp; //Højden af objektet
+	int width = abs(pixelMaxX - pixelMinX) * ROIscalar; //Bredden af objektet
+	int height = abs(pixelMaxY - pixelMinY) * ROIscalar; //Højden af objektet
 
-	int minX = realMinX - ((width / ROIscalarUp) / 2) * ROIscalar; //x til upper left corner af objekt
-	int maxY = realMaxY + ((height / ROIscalarUp) / 2) * ROIscalar; //y til upper left corner af objekt
+	int maxX = (pixelMaxX + (width)); //x til buttom left corner af objekt
+	int minX = (pixelMinX - (width)); //x til upper left corner af objekt
+	int maxY = (pixelMaxY + (height)); //y til upper left corner af objekt
+	int minY = (pixelMinY - (height)); //y til buttom left corner af objekt
 
-	int maxX = realMaxX + ((width / ROIscalarUp) / 2) * ROIscalar; //x til buttom left corner af objekt
-	int minY = realMinY - ((height / ROIscalarUp) / 2) * ROIscalar; //y til buttom left corner af objekt
+	//std::cout << "Corners " << maxX << " " << minX << " " << maxY << " " << minY << std::endl;
 
 	if (minX < 1) //Hvis objektets x1 er uden for billedet: (kan ske grundet de ekstra 20% kant)
 	{
 		minX = 1; //Objektets x1 sættes i billedets hjørne
 	}
+
 	if (minY < 1) //Hvis objektets y1 er uden for billedet:
 	{
 		minY = 1; //Objektets y1 sættes i billedets hjørne
 	}
+
 	if (maxX > 1279) //Hvis objektets x2 er uden for billedet:
 	{
 		maxX = 1279; //Objektets x2 sættes i billedets hjørne (-1 px fordi boundingbox går 1 px udenfor)
 	}
+
 	if (maxY > 719) //Hvis objektets y2 er uden for billedet:
 	{
 		maxY = 719; //Objektets y2 sættes i billedets hjørne (-1 px fordi boundingbox går 1 px udenfor)
 	}
 
-	cv::Point P1(minX, minY); // Upper left corner
-	cv::Point P2(minX, maxY); // Buttom left corner
-	cv::Point P3(maxX, maxY); // Upper right corner
+	cv::Point P1(minX, minY); //Upper left corner
+	cv::Point P2(minX, maxY); //Buttom left corner
+	cv::Point P3(maxX, maxY); //Buttom right corner
 
 	cv::RotatedRect rotatedROI = cv::RotatedRect(P1, P2, P3); //Rektangel rotatret rundt om objekt (+20%)
 	cv::Rect rectROI = rotatedROI.boundingRect(); //Laver en Rect (retvinklet) for at kunne croppe
+
 	cv::Mat imgROI = image(rectROI); //Nu er imgROI vores croppede
 	cv::waitKey(100);
 

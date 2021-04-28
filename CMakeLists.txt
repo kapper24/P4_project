@@ -15,18 +15,6 @@ find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets REQUIRED)
 find_package(PCL 1.5 REQUIRED)
 
-# Add source to this project's executable.
-set(MUJOCO_MJPRO_PATH "C://Users/Melvin/Documents/mujoco200_win64/bin")
-set(MUJOCO_MJPRO_INCLUDE "C://Users/Melvin/Documents/mujoco200_win64/include")
-
-#Options
-set(SRCS main.cpp)
-set(BIN_NAME mujoco_exe)
-
-#Paths
-include_directories(${MUJOCO_MJPRO_INCLUDE})
-link_directories(${MUJOCO_MJPRO_PATH})
-
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
@@ -67,6 +55,4 @@ target_link_libraries(
 P4_project
 PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
 ${PCL_LIBRARIES}
-"mujoco200.dll"
-"glfw3.dll"
 )

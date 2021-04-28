@@ -3,13 +3,6 @@
 
 #include <QMainWindow>
 #include <qtimer.h>
-#include "mujoco.h"
-#include "glfw3.h"
-#include "stdio.h"
-#include "stdlib.h"
-#include "string.h"
-#include "vector"
-#include "iostream"
 
 #include <math.h>
 #include <librealsense2/rs.hpp>
@@ -56,19 +49,12 @@ public:
     MainWindow(QWidget* parent = nullptr);
     ~MainWindow();
 
-
-
-    // load and compile model
-    char error[1000] = "Could not load binary model";
-
-
-
 private slots:
     void on_OpenCloseButton_clicked();
     void on_StartQuitButton_clicked();
     void PCLupdate();
-    void MujocoUpdate();
 private:
+    QTimer* PCLtimer;
     Ui::MainWindow* ui;
     QPushButton* ui_OpenCloseButton;
     QPushButton* ui_StartQuitButton;
