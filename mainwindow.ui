@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>239</width>
+    <height>508</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -344,14 +344,33 @@ color: rgb(255, 255, 255);</string>
      </property>
     </widget>
    </widget>
+   <widget class="QPushButton" name="IdleButton">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>350</y>
+      <width>151</width>
+      <height>101</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">font: 75 16pt &quot;MS Shell Dlg 2&quot;;
+background-color: rgb(255, 141, 1);
+
+color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>IDLE</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
-     <height>22</height>
+     <width>239</width>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAutonomous_Prosthesis_Control">

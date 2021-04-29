@@ -4,87 +4,9 @@
 #include <QFile>
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
-#include <iostream>
-#include <fstream>
-#include <sstream>
-
-#include <math.h>
-#include <librealsense2/rs.hpp>
-
-#include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-#include <librealsense2/rs_advanced_mode.hpp>
-
-#include <pcl/point_types.h>
-#include <pcl/io/pcd_io.h>//mabe delete
-#include <pcl/io/grabber.h>
-#include <pcl/io/openni2_grabber.h>
-#include <pcl/visualization/cloud_viewer.h>
-#include <pcl/io/ply_io.h>//mabe delete
-#include <pcl/filters/passthrough.h>//mos def delete
-#include <pcl/filters/voxel_grid.h>
-#include <pcl/features/normal_3d.h>
-#include <pcl/ModelCoefficients.h>
-#include <pcl/sample_consensus/method_types.h>
-#include <pcl/sample_consensus/model_types.h>
-#include <pcl/segmentation/sac_segmentation.h>
-#include <pcl/console/parse.h>
-#include <pcl/filters/extract_indices.h>
-#include <pcl/sample_consensus/ransac.h>
-#include <pcl/sample_consensus/sac_model_sphere.h>
-#include <pcl/common/centroid.h>
-#include <pcl/common/common.h>
-#include <pcl/segmentation/extract_clusters.h>
-#include <pcl/sample_consensus/sac_model_line.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
-typedef pcl::PointXYZ WSPoint;
-typedef pcl::PointCloud<WSPoint> WSPointCloud;
-typedef WSPointCloud::Ptr WSPointCloudPtr;
-//Globalt:
-float firstMaxX;
-float firstMinX;
-float firstMaxY;
-float firstMinY;
-
-float objectMaxX = -10;
-float objectMinX = -60;
-float objectMaxY = -10;
-float objectMinY = -60;
-
-pcl::PointXYZ minPt;
-pcl::PointXYZ maxPt;
-bool startQuit = false;
-int openclose = 0;
-//Global pcl Variables
-std::string serialnumber_;
 pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
-rs2::pipeline pipe;
-// det skal måske bruges i extractObject (det er måske bedre til at sortere støj væk)
-struct objectNormal {
-	WSPointCloudPtr objects;
-	pcl::PointCloud<pcl::Normal>::Ptr normals;
-};
-
-struct objectSpecs {
-	WSPointCloudPtr objectCloud;
-	double orientation;
-	double diameter;
-	pcl::ModelCoefficients lineCoeff;
-};
-
-//Function Declarations
-WSPointCloudPtr points2cloud(rs2::points pts);
-WSPointCloudPtr filterCloud(WSPointCloudPtr cloud);
-WSPointCloudPtr extractObject(WSPointCloudPtr filteredCloud);
-WSPointCloudPtr getCenterObject(WSPointCloudPtr objects);
-void saveRGB2File(std::string serialnumber_, WSPointCloudPtr centerObject);
-objectSpecs fitCylinder(WSPointCloudPtr centerObject);
-objectSpecs fitWine(WSPointCloudPtr centerObject);
-objectSpecs fitCup(WSPointCloudPtr centerObject);
-
-
 
 MainWindow::MainWindow(QWidget* parent)
 	: QMainWindow(parent)
@@ -93,8 +15,13 @@ MainWindow::MainWindow(QWidget* parent)
 	ui->setupUi(this);
 	ui_OpenCloseButton = findChild<QPushButton*>("OpenCloseButton");
 	ui_StartQuitButton = findChild<QPushButton*>("StartQuitButton");
+	ui_IdleButton = findChild<QPushButton*>("IdleButton");
 	ui_GraspGorithmLabel = findChild<QLabel*>("GraspGorithmLabel");
-/*
+
+	std::ofstream send("C:\\Users\\Melvin\\Documents\\GUI_test\\ReadfromPCL.txt", std::ofstream::trunc);
+	send << "Idle" << "\n";
+	mjHand = HandState::Idle;
+
 #pragma region find devices
 	rs2::device dev_ = [] {
 		rs2::context ctx;
@@ -115,8 +42,9 @@ MainWindow::MainWindow(QWidget* parent)
 #pragma region Variables
 	// Declarations
 	//pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
+	
+	
 	int vp(0);
-
 	rs2::config config;
 	serialnumber_ = dev_.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER);
 	auto sensors = dev_.query_sensors();
@@ -151,14 +79,21 @@ MainWindow::MainWindow(QWidget* parent)
 			std::cout << "  stream " << profile.stream_name() << " " << profile.stream_type() << " " << profile.format() << " " << " " << profile.fps() << std::endl;
 		}
 	}
-	
+	*/
 	std::cout << "Opening pipeline for " << serialnumber_ << std::endl;
+	//rs2::config rgbconfig;
+	//rgbconfig.enable_device(serialnumber_);
+	
 	config.enable_device(serialnumber_);
 
+	config.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_BGR8, 15);
 	config.enable_stream(RS2_STREAM_DEPTH, 424, 240, RS2_FORMAT_Z16, 90); //works fine!
+	
 	//config.enable_stream(RS2_STREAM_DEPTH, 256, 144, RS2_FORMAT_Z16, 90);
 	//rs2::pipeline pipe;
 	rs2::pipeline_profile profile = pipe.start(config);
+	
+	//rs2::pipeline_profile rgbprofile = rgbpipe.start(rgbconfig);
 	////cfg.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 60);
 	//config.enable_stream(RS2_STREAM_DEPTH, 848, 480, RS2_FORMAT_Z16, 30);
 	//cfg_.enable_stream(RS2_STREAM_DEPTH, 848, 100, RS2_FORMAT_Z16, 100); // USB3.0 only!
@@ -166,9 +101,10 @@ MainWindow::MainWindow(QWidget* parent)
 
 	PCLtimer = new QTimer(this);
 	connect(PCLtimer, SIGNAL(timeout()), this, SLOT(PCLupdate()));
+	PCLtimer->start();
 	//PCLtimer->start();
 
-	*/
+	
 	QMetaObject::connectSlotsByName(this);
 	//PCLupdate();
 }
@@ -179,43 +115,56 @@ MainWindow::~MainWindow()
 }
 void MainWindow::on_OpenCloseButton_clicked()
 {
-	//std::cout << "clicked open" << std::endl;
 	openclose++;
-	//C:\\Users\\Melvin\\Documents\\GUI_test\\Read.txt
-	std::ofstream send("C:\\Users\\Melvin\\Documents\\GUI_test\\Read.txt", std::ofstream::trunc);
-	//std::ofstream send("C:\\Users\\Melvin\\Documents\\P4_project\\Read.txt", std::ofstream::trunc);
-	
-	if (openclose == 2) {
-		send << "Grasp 2\n" << "diameter " << "\n" << "Open";
-		std::cout << "open";
-		openclose = -2;
+	if (mjHand == HandState::Idle && openclose == 2) {
+		if (graspnum != 0) {
+			std::ofstream send("C:\\Users\\Melvin\\Documents\\GUI_test\\ReadfromPCL.txt", std::ofstream::trunc);
+			send << "Grasp " << graspnum << "\n" << "diameter " << "\n" << "Open";
+			std::cout << "open";
+			openclose = -2;
+			mjHand = HandState::Open;
+		}
 	}
-	else if (openclose == 0){
-		send << "Grasp 2\n" << "Close";
+	else if(mjHand == HandState::Open && openclose == 0)
+	{
+		std::ofstream send("C:\\Users\\Melvin\\Documents\\GUI_test\\ReadfromPCL.txt", std::ofstream::trunc);
+		send << "Grasp " << graspnum << "\n" << "Close";
 		std::cout << "close";
+		mjHand = HandState::Close;
 	}
-	//Get grip information
-	// Open/close hand
-	//
+	else if (mjHand == HandState::Close && openclose == 2) {
+		std::ofstream send("C:\\Users\\Melvin\\Documents\\GUI_test\\ReadfromPCL.txt", std::ofstream::trunc);
+		send << "Grasp " << graspnum << "\n" << "Open";
+		std::cout << "Open";
+		openclose = -2;
+		mjHand = HandState::Open;
+	}
+	
+
 }
 void MainWindow::on_StartQuitButton_clicked()
 {
 	std::cout << "clicked Start" << std::endl;
-	startQuit = !startQuit;
-	if (startQuit)
-	{
-	//system("C:\\Users\\Melvin\\Documents\\GUI_test\\build\\Debug\\GUI_test.exe");
-		//PCLtimer->start();
-	}
-	else {
-		QApplication::quit();
-	}
+	
 	//Launch python program
    //turn on camera and PCL
    //close program
 }
+void MainWindow::on_IdleButton_clicked()
+{
+	std::ofstream send("C:\\Users\\Melvin\\Documents\\GUI_test\\ReadfromPCL.txt", std::ofstream::trunc);
+	send << "Idle"<< "\n";
+	openclose = 0;
+	mjHand = HandState::Idle;
+}
 void MainWindow::PCLupdate()
 {
+	if (mjHand == HandState::Open)
+		ui_OpenCloseButton->setText("Close");
+	else if (mjHand == HandState::Close)
+		ui_OpenCloseButton->setText("Open");
+	else if (mjHand == HandState::Idle)
+		ui_OpenCloseButton->setText("Open");
 		//Variables that are reset every loop
 		rs2::pointcloud pc;
 		rs2::points points;
@@ -224,78 +173,108 @@ void MainWindow::PCLupdate()
 		WSPointCloudPtr objects(new WSPointCloud);
 		WSPointCloudPtr centerObject(new WSPointCloud);
 		WSPointCloudPtr filteredObject(new WSPointCloud);
-		pcl::ModelCoefficients lineCoeff;
+		//pcl::ModelCoefficients lineCoeff;
 		double orientation;
 		double diameter;
-
 
 		viewer->removeAllShapes();
 		viewer->removeAllPointClouds();
 		auto frames = pipe.wait_for_frames();
 		auto depth = frames.get_depth_frame();
+		rs2::frame colorimg = frames.get_color_frame();
 
 		points = pc.calculate(depth);
 		cloud = points2cloud(points);
-		filteredCloud = filterCloud(cloud);
+		checkCloud newCheckCloud;
+		newCheckCloud = filterCloud(cloud);
+		filteredCloud = newCheckCloud.cloud;
+		bool check = newCheckCloud.check;
+		if (check) {
 
+			objects = extractObject(filteredCloud);
+			centerObject = getCenterObject(objects);
 
-		objects = extractObject(filteredCloud);
+			if (centerObject != objects) {
+				//pcl::io::savePCDFileASCII("test.pcd", *centerObject); //til at gemme .pcd filer (fuck den lange funktion)
+				//pipe.stop();
+				//saveRGB2File(serialnumber_, centerObject);
+					objectSpecs objectInfo;
+				if (mjHand == HandState::Idle){
+					const int w = colorimg.as<rs2::video_frame>().get_width();
+					const int h = colorimg.as<rs2::video_frame>().get_height();
+					cv::Mat image(cv::Size(w, h), CV_8UC3, (void*)colorimg.get_data(), cv::Mat::AUTO_STEP);
+					if (std::filesystem::is_empty("C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\images")) {
 
+						cv::imwrite("C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\images\\MyImage.png", image); //write the image to a file as JPEG 
+						std::cout << "pic saved \n";
+					}
 
-		centerObject = getCenterObject(objects);
+					//pipe.start();
+					///////////// return object classification from google here ///////////////////////
+					std::string line;
+					std::cout << "waiting for response from google vision" << std::endl;
+					while (!std::filesystem::is_empty("C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\images")) {
 
-		if (centerObject != objects) {
-			//pcl::io::savePCDFileASCII("test.pcd", *centerObject); //til at gemme .pcd filer (fuck den lange funktion)
-			//pipe.stop();
-			saveRGB2File(serialnumber_, centerObject);
-			//pipe.start();
-			///////////// return object classification from google here ///////////////////////
-			std::string line;
-
-			std::ifstream f("C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\ReadfromPython.txt");
-			objectSpecs objectInfo;
-			while (line == "") {
-				while (getline(f, line))
-				{
+					}
+					std::ifstream f("C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\ReadfromPython.txt");
+					std::cout << "readfromPython" << std::endl;
+					cv::waitKey(100);
+					if (getline(f, line))
+						std::cout << line << std::endl;
 					//std::ofstream send("C:\\Users\\Melvin\\Documents\\P4_project\\Read.txt", std::ofstream::trunc);
 					//send << "1 \n";
 					if (line == "Grasp 1") {
-
+						graspnum = 1;
 						objectInfo = fitCylinder(centerObject);
 						std::cout << line << std::endl;
 					}
 					else if (line == "Grasp 2") {
-
+						graspnum = 2;
 						objectInfo = fitWine(centerObject);
 					}
 					else if (line == "Grasp 3") {
-
+						graspnum = 3;
 						objectInfo = fitCup(centerObject);
 					}
 					else if (line == "NULL") {
-
+						graspnum = 1;
 						objectInfo = fitCylinder(centerObject);
 						std::cout << line << std::endl;
 					}
+					f.clear();
 				}
+				else {
+					switch (graspnum)
+					{
+					case 1:
+						objectInfo = fitCylinder(centerObject);
+						break;
+					case 2:
+						objectInfo = fitWine(centerObject);
+						break;
+					case 3:
+						objectInfo = fitCup(centerObject);
+						break;
+					default:
+						break;
+					}
+				}
+				//objectInfo = fitCylinder(centerObject);
+				filteredObject = objectInfo.objectCloud;
+				orientation = objectInfo.orientation;
+				diameter = objectInfo.diameter;
+				cout << "orientation: " << orientation << endl;
+				cout << "diameter: " << diameter << endl;
+
+				pcl::visualization::PointCloudColorHandlerCustom<WSPoint> cloud_color_h(0, 255, 0);
+				viewer->addPointCloud(filteredObject, cloud_color_h, "cloudname");
+				//viewer->addLine(lineCoeff, "line");
 			}
-			
-			filteredObject = objectInfo.objectCloud;
-			orientation = objectInfo.orientation;
-			diameter = objectInfo.diameter;
-			lineCoeff = objectInfo.lineCoeff;
-			cout << "orientation: " << orientation << endl;
-			cout << "diameter: " << diameter << endl;
-
-			pcl::visualization::PointCloudColorHandlerCustom<WSPoint> cloud_color_h(0, 255, 0);
-			viewer->addPointCloud(filteredObject, cloud_color_h, "cloudname");
-			viewer->addLine(lineCoeff, "line");
+				viewer->spinOnce(1, true);
 		}
-
-		viewer->spinOnce(1, true);
 	}
 
-WSPointCloudPtr points2cloud(rs2::points pts)
+MainWindow::WSPointCloudPtr MainWindow::points2cloud(rs2::points pts)
 {
 	WSPointCloudPtr cloud(new WSPointCloud());
 
@@ -312,28 +291,35 @@ WSPointCloudPtr points2cloud(rs2::points pts)
 		ptr++;
 	}
 	return cloud;
-	//mu_cloud_.lock();
-//	cloud_ = cloud;
-	//mu_cloud_.unlock();
-
 }
-WSPointCloudPtr filterCloud(WSPointCloudPtr cloud) {
+MainWindow::checkCloud MainWindow::filterCloud(WSPointCloudPtr cloud) {
 	pcl::VoxelGrid<WSPoint> vox;
+	checkCloud newCheckCloud;
+	bool check = 0;
 	// voxelgrid filter
 	vox.setInputCloud(cloud);
-	vox.setLeafSize(0.004f, 0.004f, 0.004f); // sets distance between points shown
+	vox.setLeafSize(0.005f, 0.005f, 0.005f); // sets distance between points shown
 	vox.filter(*cloud);
-	pcl::getMinMax3D(*cloud, minPt, maxPt);
-	firstMaxX = abs(maxPt.x);
-	firstMinX = abs(minPt.x);
-	firstMaxY = abs(maxPt.y);
-	firstMinY = abs(minPt.y);
+	for (auto&& p : cloud->points) {
+		if (check == false) {
+			if (p.z != 0) {
+				check = true;
+			}
+		}
+	}
+	if (check == true) {
+		newCheckCloud.cloud = cloud;
+		newCheckCloud.check = check;
+	}
+	else if (check == false) {
+		newCheckCloud.cloud = cloud;
+		newCheckCloud.check = check;
+	}
 
-	return cloud;
+	return newCheckCloud;
 }
-WSPointCloudPtr extractObject(WSPointCloudPtr filteredCloud) {
+MainWindow::WSPointCloudPtr MainWindow::extractObject(WSPointCloudPtr filteredCloud) {
 
-	objectNormal newObject;
 	//Normal Estimation tegner normal vektorer på overfalder 
 	// - Ret sikker på det kan bruges til at segmentere 
 	// - https://pcl.readthedocs.io/projects/tutorials/en/latest/normal_estimation.html#normal-estimation
@@ -345,7 +331,6 @@ WSPointCloudPtr extractObject(WSPointCloudPtr filteredCloud) {
 	norm.setInputCloud(filteredCloud);
 	norm.setKSearch(50);
 	norm.compute(*cloudNormals);
-
 
 	//Segmentation... det virker lidt vildt og er ikke helt 100 på hvad der sker. 
 	//Normals bliver brugt og inliers osv... 
@@ -360,7 +345,7 @@ WSPointCloudPtr extractObject(WSPointCloudPtr filteredCloud) {
 	segNorm.setNormalDistanceWeight(0.1);
 	segNorm.setMethodType(pcl::SAC_RANSAC);
 	segNorm.setMaxIterations(10000);
-	segNorm.setDistanceThreshold(0.03);
+	segNorm.setDistanceThreshold(0.05);
 	segNorm.setInputCloud(filteredCloud);
 	segNorm.setInputNormals(cloudNormals);
 	segNorm.segment(*inliersPlane, *coefficientsPlane);
@@ -373,30 +358,26 @@ WSPointCloudPtr extractObject(WSPointCloudPtr filteredCloud) {
 	extract.setNegative(false);
 	extract.filter(*cloudSeg);
 	// fjern planer
-	pcl::PointCloud<pcl::Normal>::Ptr cloudSeg_Normals(new pcl::PointCloud<pcl::Normal>);
 	extract.setNegative(true);
 	extract.filter(*cloudSeg);
 
-	newObject.objects = cloudSeg;
-	newObject.normals = cloudNormals;
-
 	return cloudSeg;
 }
-WSPointCloudPtr getCenterObject(WSPointCloudPtr objectCloud) {
+MainWindow::WSPointCloudPtr MainWindow::getCenterObject(WSPointCloudPtr objectCloud) {
 	WSPointCloudPtr fail = objectCloud;
 	pcl::search::KdTree<WSPoint>::Ptr tree(new pcl::search::KdTree<WSPoint>);
 	std::vector<pcl::PointIndices> cluster_indices;
 	pcl::EuclideanClusterExtraction<WSPoint> cluster;
-	std::vector<pcl::PointCloud<WSPoint>::Ptr> objects;
+	std::vector<WSPointCloudPtr> objects;
 	std::vector<double> ecDist;
-	pcl::PointCloud<WSPoint>::Ptr centerObject(new pcl::PointCloud<WSPoint>);
+	WSPointCloudPtr centerObject(new WSPointCloud);
 
 	//object cluster
 	// - https://pcl.readthedocs.io/projects/tutorials/en/latest/cluster_extraction.html#cluster-extraction
 	tree->setInputCloud(objectCloud);
-	cluster.setClusterTolerance(0.02); // 2cm
-	cluster.setMinClusterSize(50);
-	cluster.setMaxClusterSize(7000);
+	cluster.setClusterTolerance(0.01); // 2cm
+	cluster.setMinClusterSize(150);
+	cluster.setMaxClusterSize(2000);
 	cluster.setSearchMethod(tree);
 	cluster.setInputCloud(objectCloud);
 	cluster.extract(cluster_indices);
@@ -434,6 +415,7 @@ WSPointCloudPtr getCenterObject(WSPointCloudPtr objectCloud) {
 		ecDist.push_back(tempDist);
 	}
 
+
 	if (ecDist.size() < 1) {
 		return fail;
 	}
@@ -447,28 +429,27 @@ WSPointCloudPtr getCenterObject(WSPointCloudPtr objectCloud) {
 			smallestValue = ecDist[i];
 			objectNumber = i;
 		}
-	} // første objekt lig med 0, andet objekt er lig med 1
-	// cout << "objektet er: " << objectNumber << "dist er: " << smallestValue << endl;
+	}
 
 	*centerObject = *objects[objectNumber];
-	pcl::getMinMax3D(*centerObject, minPt, maxPt);
-	objectMaxX = maxPt.x;
-	objectMinX = minPt.x;
-	objectMaxY = maxPt.y;
-	objectMinY = minPt.y;
+	//cout << "size: " << centerObject->size() << endl;
+
+	
 	return centerObject;
 }
-objectSpecs fitCylinder(WSPointCloudPtr centerObject) {
+MainWindow::objectSpecs MainWindow::fitCylinder(WSPointCloudPtr centerObject) {
 	objectSpecs newCylinder;
 
 	pcl::NormalEstimation<WSPoint, pcl::Normal> norm;
 	pcl::SACSegmentationFromNormals<WSPoint, pcl::Normal> segNorm;
 	pcl::ExtractIndices<WSPoint> extract;
+	double orientation;
+	double radius;
 
 	//Normals til cylinder 
 	pcl::PointCloud<pcl::Normal>::Ptr cylinderNormals(new pcl::PointCloud<pcl::Normal>);
 	norm.setInputCloud(centerObject);
-	norm.setKSearch(50);
+	norm.setKSearch(25);
 	norm.compute(*cylinderNormals);
 
 	//Segmentere cylinder 
@@ -477,13 +458,15 @@ objectSpecs fitCylinder(WSPointCloudPtr centerObject) {
 	pcl::ModelCoefficients::Ptr coefficientsCylinder(new pcl::ModelCoefficients);
 	pcl::PointIndices::Ptr inliersCylinder(new pcl::PointIndices);
 	WSPointCloudPtr cylinder(new WSPointCloud);
+	//pcl::ModelCoefficients lineCoeff; // dette bruges til at lave en linje i den retning som cylinderen peger
+	//lineCoeff.values.resize(6);  // We need 6 values
 	segNorm.setOptimizeCoefficients(true);
 	segNorm.setModelType(pcl::SACMODEL_CYLINDER);
 	segNorm.setMethodType(pcl::SAC_RANSAC);
 	segNorm.setNormalDistanceWeight(0.1);
 	segNorm.setMaxIterations(10000);
-	segNorm.setDistanceThreshold(0.5);
-	segNorm.setRadiusLimits(0, 0.5);
+	segNorm.setDistanceThreshold(0.03); // test det her
+	segNorm.setRadiusLimits(0.01, 0.08);
 	segNorm.setInputCloud(centerObject);
 	segNorm.setInputNormals(cylinderNormals);
 	segNorm.segment(*inliersCylinder, *coefficientsCylinder);
@@ -496,157 +479,72 @@ objectSpecs fitCylinder(WSPointCloudPtr centerObject) {
 	//coefficientsCylinder inderholder de paramtre ransac bruger til at finde en cylinder 
 	// - https://pointclouds.org/documentation/classpcl_1_1_sample_consensus_model_cylinder.html
 	// - http://www.pcl-users.org/Sphere-detection-by-RANSAC-td4038300.html
+	if (coefficientsCylinder->values.size() > 0) {
+		double xdir = coefficientsCylinder->values[3];
+		double ydir = coefficientsCylinder->values[4];
+		radius = coefficientsCylinder->values[6];
+		// Calculate orientation
 
-	double xdir = coefficientsCylinder->values[3];
-	double ydir = coefficientsCylinder->values[4];
-	double radius = coefficientsCylinder->values[6];
+		orientation = atan2(ydir, xdir) * 180 / 3.1415;
 
-
-	// Calculate orientation
-	double orientation;
-	if (xdir > 0) {
-		if (ydir > 0) {
-			orientation = atan2(ydir, xdir) * 180 / 3.1415;
-		}
-		else if (ydir < 0) {
-			orientation = -atan2(abs(ydir), xdir) * 180 / 3.1415;
-		}
-		else {
-			orientation = 0;
-		}
-	}
-	else if (xdir < 0) {
-		if (ydir > 0) {
-			orientation = 90 + atan2(abs(xdir), ydir) * 180 / 3.1415;
-		}
-		else if (ydir < 0) {
-			orientation = -90 - atan2(abs(xdir), abs(ydir)) * 180 / 3.1415;
-		}
-		else {
-			orientation = 0;
+		if (orientation < 0) {
+			orientation = orientation + 180;
 		}
 	}
 	else {
+
 		orientation = 90;
+		radius = 1;
 	}
-
-	if (orientation < 0) {
-		orientation = orientation + 180;
-	}
-
-	pcl::ModelCoefficients lineCoeff; // dette bruges til at lave en linje i den retning som cylinderen peger
-	lineCoeff.values.resize(6);  // We need 6 values
-	lineCoeff.values[0] = coefficientsCylinder->values[0];
-	lineCoeff.values[1] = coefficientsCylinder->values[1];
-	lineCoeff.values[2] = coefficientsCylinder->values[2];
-
-	lineCoeff.values[3] = coefficientsCylinder->values[3];
-	lineCoeff.values[4] = coefficientsCylinder->values[4];
-	lineCoeff.values[5] = coefficientsCylinder->values[5];
-
 	newCylinder.objectCloud = cylinder;
 	newCylinder.orientation = orientation;
 	newCylinder.diameter = radius * 2;
-	newCylinder.lineCoeff = lineCoeff;
+	
 	return newCylinder;
 }
-objectSpecs fitWine(WSPointCloudPtr centerObject) {
-	//Segmentere af vinglas med circler
-		// - virker faktisk bedre og bruger ikke normal. 
-		// - Får en bedre diameter 
-		// - https://pointclouds.org/documentation/classpcl_1_1_sample_consensus_model_circle3_d.html
+MainWindow::objectSpecs MainWindow::fitWine(WSPointCloudPtr centerObject) {
 	objectSpecs wineSpecs;
+	
+	WSPoint minPt;
+	WSPoint maxPt;
+	pcl::getMinMax3D(*centerObject, minPt, maxPt);
+	WSPoint pointMin;
+	WSPoint pointMax;
+	pointMin.x = minPt.x;
+	pointMin.y = 0;
+	pointMin.z = maxPt.z;
+	pointMax.x = maxPt.x;
+	pointMax.y = 0;
+	pointMax.z = maxPt.z;
+	double diameter = pcl::geometry::distance(pointMin, pointMax);
 
-	WSPointCloudPtr wineGlass(new WSPointCloud);
-	pcl::SACSegmentation<WSPoint> seg;
-	pcl::ModelCoefficients::Ptr coefficientsCircle(new pcl::ModelCoefficients);
-	pcl::PointIndices::Ptr inliersCircle(new pcl::PointIndices);
-	pcl::ExtractIndices<WSPoint> extract;
-
-	seg.setOptimizeCoefficients(true);
-	seg.setModelType(pcl::SACMODEL_SPHERE);
-	seg.setMethodType(pcl::SAC_RANSAC);
-	seg.setMaxIterations(10000);
-	seg.setDistanceThreshold(0.08);
-	seg.setRadiusLimits(0, 0.5);
-	seg.setInputCloud(centerObject);
-	seg.segment(*inliersCircle, *coefficientsCircle);
-
-	extract.setInputCloud(centerObject);
-	extract.setIndices(inliersCircle);
-	extract.setNegative(false);
-	extract.filter(*wineGlass);
-
-	double radius = coefficientsCircle->values[3];
-	/*
-	double orientation;
-	double xdir = coefficientsCircle->values[4];
-	double ydir = coefficientsCircle->values[5];
-	if (xdir > 0) {
-		if (ydir > 0) {
-			orientation = atan2(ydir, xdir) * 180 / 3.1415;
-		}
-		else if (ydir < 0) {
-			orientation = -atan2(abs(ydir), xdir) * 180 / 3.1415;
-		}
-		else {
-			orientation = 0;
-		}
-	}
-	else if (xdir < 0) {
-		if (ydir > 0) {
-			orientation = 90 + atan2(abs(xdir), ydir) * 180 / 3.1415;
-		}
-		else if (ydir < 0) {
-			orientation = -90 - atan2(abs(xdir), abs(ydir)) * 180 / 3.1415;
-		}
-		else {
-			orientation = 0;
-		}
-	}
-	else {
-		orientation = 90;
-	}
-
-	if (orientation < 0) {
-		orientation = orientation + 180;
-	}*/
-
-	pcl::ModelCoefficients lineCoeff; // dette bruges til at lave en linje i den retning som cylinderen peger
-	lineCoeff.values.resize(6);  // We need 6 values
-	lineCoeff.values[0] = coefficientsCircle->values[0];
-	lineCoeff.values[1] = coefficientsCircle->values[1];
-	lineCoeff.values[2] = coefficientsCircle->values[2];
-
-	lineCoeff.values[3] = coefficientsCircle->values[4];
-	lineCoeff.values[4] = coefficientsCircle->values[5];
-	lineCoeff.values[5] = coefficientsCircle->values[6];
-
-	wineSpecs.objectCloud = wineGlass;
+	wineSpecs.objectCloud = centerObject;
 	wineSpecs.orientation = 90;
-	wineSpecs.diameter = radius * 2;
-	wineSpecs.lineCoeff = lineCoeff;
+	wineSpecs.diameter = diameter;
 	return wineSpecs;
 }
-objectSpecs fitCup(WSPointCloudPtr centerObject) {
+MainWindow::objectSpecs MainWindow::fitCup(WSPointCloudPtr centerObject) {
 	objectSpecs cupSpecs;
 
 	//Segmentere cylinder 
-		// - https://pcl.readthedocs.io/projects/tutorials/en/master/cylinder_segmentation.html#cylinder-segmentation
 	pcl::ModelCoefficients::Ptr coefficientsCylinder(new pcl::ModelCoefficients);
 	pcl::PointIndices::Ptr inliersCylinder(new pcl::PointIndices);
 	WSPointCloudPtr cylinderObject(new WSPointCloud);
+	pcl::NormalEstimation<WSPoint, pcl::Normal> norm;
 	pcl::PointCloud<pcl::Normal>::Ptr cylinderNormals(new pcl::PointCloud<pcl::Normal>);
 	pcl::SACSegmentationFromNormals<WSPoint, pcl::Normal> segNorm;
 	pcl::ExtractIndices<WSPoint> extract;
+	norm.setInputCloud(centerObject);
+	norm.setKSearch(50);
+	norm.compute(*cylinderNormals);
 
 	segNorm.setOptimizeCoefficients(true);
 	segNorm.setModelType(pcl::SACMODEL_CYLINDER);
 	segNorm.setMethodType(pcl::SAC_RANSAC);
 	segNorm.setNormalDistanceWeight(0.1);
 	segNorm.setMaxIterations(10000);
-	segNorm.setDistanceThreshold(0.008);
-	segNorm.setRadiusLimits(0, 0.1);
+	segNorm.setDistanceThreshold(0.06);
+	segNorm.setRadiusLimits(0.02, 0.08);
 	segNorm.setInputCloud(centerObject);
 	segNorm.setInputNormals(cylinderNormals);
 	segNorm.segment(*inliersCylinder, *coefficientsCylinder);
@@ -655,89 +553,42 @@ objectSpecs fitCup(WSPointCloudPtr centerObject) {
 	extract.setIndices(inliersCylinder);
 	extract.setNegative(false);
 	extract.filter(*cylinderObject);
-
 	//Segmentere cylinderen fra koppen 
 	// - find ud af hvilke data vi kan få ud og hvordan det kan bruges 
 	extract.setNegative(true);
 	extract.filter(*cylinderObject);
 
-	//Det her burde at give os bredden på hanken af koppen, men det er mærkeligt....
-	pcl::SACSegmentation<WSPoint> seg;
-	pcl::ModelCoefficients::Ptr coefficientsCup(new pcl::ModelCoefficients);
-	pcl::PointIndices::Ptr inliersCup(new pcl::PointIndices);
-	seg.setOptimizeCoefficients(true);
-	seg.setModelType(pcl::SACMODEL_STICK);
-	seg.setMethodType(pcl::SAC_RANSAC);
-	seg.setMaxIterations(10000);
-	seg.setDistanceThreshold(0.08);
-	seg.setRadiusLimits(0.002, 0.05);
-	seg.setInputCloud(cylinderObject);
-	seg.segment(*inliersCup, *coefficientsCup);
-	//*cylinderObject = *centerObject;
-
-	extract.setInputCloud(cylinderObject);
-	extract.setIndices(inliersCup);
-	extract.setNegative(false);
-	extract.filter(*cylinderObject);
-
-	double radius = coefficientsCup->values[6];
 	double orientation;
-	double xdir = coefficientsCup->values[3];
-	double ydir = coefficientsCup->values[4];
-	if (xdir > 0) {
-		if (ydir > 0) {
-			orientation = atan2(ydir, xdir) * 180 / 3.1415;
-		}
-		else if (ydir < 0) {
-			orientation = -atan2(abs(ydir), xdir) * 180 / 3.1415;
-		}
-		else {
-			orientation = 0;
-		}
-	}
-	else if (xdir < 0) {
-		if (ydir > 0) {
-			orientation = 90 + atan2(abs(xdir), ydir) * 180 / 3.1415;
-		}
-		else if (ydir < 0) {
-			orientation = -90 - atan2(abs(xdir), abs(ydir)) * 180 / 3.1415;
-		}
-		else {
-			orientation = 0;
-		}
-	}
-	else {
-		orientation = 90;
-	}
-	if (orientation < 0) {
-		orientation = orientation + 180;
-	}
 
-	pcl::ModelCoefficients lineCoeff; // dette bruges til at lave en linje i den retning som cylinderen peger
-	lineCoeff.values.resize(6);  // We need 6 values
-	lineCoeff.values[0] = coefficientsCup->values[0];
-	lineCoeff.values[1] = coefficientsCup->values[1];
-	lineCoeff.values[2] = coefficientsCup->values[2];
-
-	lineCoeff.values[3] = coefficientsCup->values[3];
-	lineCoeff.values[4] = coefficientsCup->values[4];
-	lineCoeff.values[5] = coefficientsCup->values[5];
+	WSPoint minPt;
+	WSPoint maxPt;
+	pcl::getMinMax3D(*cylinderObject, minPt, maxPt);
+	WSPoint pointMin;
+	WSPoint pointMax;
+	pointMin.x = 0;
+	pointMin.y = minPt.y;
+	pointMin.z = minPt.z;
+	pointMax.x = 0;
+	pointMax.y = maxPt.y;
+	pointMax.z = minPt.z;
+	double diameter = pcl::geometry::distance(pointMin, pointMax);
 
 	cupSpecs.objectCloud = cylinderObject;
 	cupSpecs.orientation = 90;
-	cupSpecs.diameter = radius * 2;
-	cupSpecs.lineCoeff = lineCoeff;
+	cupSpecs.diameter = diameter - 0.03;
+	
 
 	return cupSpecs;
 }
+/*
 void saveRGB2File(std::string serialnumber_, WSPointCloudPtr centerObject) {
-	rs2::config config;
+	/*rs2::config config;
 	config.enable_device(serialnumber_);
 	config.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_BGR8, 15);
 	rs2::pipeline pipe;
 	rs2::pipeline_profile profile = pipe.start(config);
-	auto frames = pipe.wait_for_frames();
-	rs2::frame colorimg = frames.get_color_frame();
+	//auto frames = pipe.wait_for_frames();
+	//colorimg = frames.get_color_frame();
 
 	const int w = colorimg.as<rs2::video_frame>().get_width();
 	const int h = colorimg.as<rs2::video_frame>().get_height();
@@ -803,6 +654,7 @@ void saveRGB2File(std::string serialnumber_, WSPointCloudPtr centerObject) {
 
 	imwrite("C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\images\\MyImage.png", imgROI); //write the image to a file as JPEG 
 	cv::waitKey(100);
-	pipe.stop();
+	//pipe.stop();
 	//cv::waitKey(10);
 }
+*/

@@ -4,7 +4,8 @@
 #include <QMainWindow>
 #include <qtimer.h>
 
-#include <math.h>
+
+
 #include <librealsense2/rs.hpp>
 
 #include <opencv2/core.hpp>
@@ -12,6 +13,7 @@
 #include <opencv2/imgproc.hpp>
 #include <librealsense2/rs_advanced_mode.hpp>
 
+#include <pcl/common/geometry.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>//mabe delete
 #include <pcl/io/grabber.h>
@@ -49,15 +51,68 @@ public:
     MainWindow(QWidget* parent = nullptr);
     ~MainWindow();
 
+
 private slots:
     void on_OpenCloseButton_clicked();
     void on_StartQuitButton_clicked();
+    void on_IdleButton_clicked();
     void PCLupdate();
 private:
     QTimer* PCLtimer;
     Ui::MainWindow* ui;
     QPushButton* ui_OpenCloseButton;
     QPushButton* ui_StartQuitButton;
+    QPushButton* ui_IdleButton;
     QLabel* ui_GraspGorithmLabel;
+    enum HandState{
+        Open,
+        Close,
+        Idle
+    };
+    HandState mjHand = Idle;
+    typedef pcl::PointXYZ WSPoint;
+    typedef pcl::PointCloud<WSPoint> WSPointCloud;
+    typedef WSPointCloud::Ptr WSPointCloudPtr;
+
+    int graspnum = 0;
+
+    float objectMaxX = -10;
+    float objectMinX = -60;
+    float objectMaxY = -10;
+    float objectMinY = -60;
+
+    pcl::PointXYZ minPt;
+    pcl::PointXYZ maxPt;
+    bool startQuit = false;
+    int openclose = 0;
+    //Global pcl Variables
+    std::string serialnumber_;
+   
+    rs2::pipeline pipe;
+    // det skal måske bruges i extractObject (det er måske bedre til at sortere støj væk)
+    struct objectNormal {
+        WSPointCloudPtr objects;
+        pcl::PointCloud<pcl::Normal>::Ptr normals;
+    };
+
+    struct objectSpecs {
+        WSPointCloudPtr objectCloud;
+        double orientation;
+        double diameter;
+    };
+    struct checkCloud {
+        WSPointCloudPtr cloud;
+        bool check;
+    };
+
+
+    WSPointCloudPtr points2cloud(rs2::points pts);
+    checkCloud filterCloud(WSPointCloudPtr cloud);
+    WSPointCloudPtr extractObject(WSPointCloudPtr filteredCloud);
+    WSPointCloudPtr getCenterObject(WSPointCloudPtr objects);
+    //void saveRGB2File(Mat image, WSPointCloudPtr centerObject);
+    objectSpecs fitCylinder(WSPointCloudPtr centerObject);
+    objectSpecs fitWine(WSPointCloudPtr centerObject);
+    objectSpecs fitCup(WSPointCloudPtr centerObject);
 };
 #endif // MAINWINDOW_H
