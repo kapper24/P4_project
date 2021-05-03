@@ -504,21 +504,19 @@ MainWindow::objectSpecs MainWindow::fitCylinder(WSPointCloudPtr centerObject) {
 }
 MainWindow::objectSpecs MainWindow::fitWine(WSPointCloudPtr centerObject) {
 	objectSpecs wineSpecs;
-	
+	pcl::PCA<pcl::PointXYZ> pca;
+	WSPointCloudPtr cloudPCAprojection(new WSPointCloud);
+	pca.setInputCloud(centerObject);
+	pca.project(*centerObject, *cloudPCAprojection);
+	//pca.getEigenVectors();
+	//pca.getEigenValues();
+
 	WSPoint minPt;
 	WSPoint maxPt;
-	pcl::getMinMax3D(*centerObject, minPt, maxPt);
-	WSPoint pointMin;
-	WSPoint pointMax;
-	pointMin.x = minPt.x;
-	pointMin.y = 0;
-	pointMin.z = maxPt.z;
-	pointMax.x = maxPt.x;
-	pointMax.y = 0;
-	pointMax.z = maxPt.z;
-	double diameter = pcl::geometry::distance(pointMin, pointMax);
+	pcl::getMinMax3D(*cloudPCAprojection, minPt, maxPt);
+	double diameter = abs(minPt.y) + abs(maxPt.y);
 
-	wineSpecs.objectCloud = centerObject;
+	wineSpecs.objectCloud = cloudPCAprojection;
 	wineSpecs.orientation = 90;
 	wineSpecs.diameter = diameter;
 	return wineSpecs;
@@ -530,6 +528,7 @@ MainWindow::objectSpecs MainWindow::fitCup(WSPointCloudPtr centerObject) {
 	pcl::ModelCoefficients::Ptr coefficientsCylinder(new pcl::ModelCoefficients);
 	pcl::PointIndices::Ptr inliersCylinder(new pcl::PointIndices);
 	WSPointCloudPtr cylinderObject(new WSPointCloud);
+	WSPointCloudPtr cloudPCAprojection(new WSPointCloud);
 	pcl::NormalEstimation<WSPoint, pcl::Normal> norm;
 	pcl::PointCloud<pcl::Normal>::Ptr cylinderNormals(new pcl::PointCloud<pcl::Normal>);
 	pcl::SACSegmentationFromNormals<WSPoint, pcl::Normal> segNorm;
@@ -560,24 +559,21 @@ MainWindow::objectSpecs MainWindow::fitCup(WSPointCloudPtr centerObject) {
 
 	double orientation;
 
-	WSPoint minPt;
-	WSPoint maxPt;
-	pcl::getMinMax3D(*cylinderObject, minPt, maxPt);
-	WSPoint pointMin;
-	WSPoint pointMax;
-	pointMin.x = 0;
-	pointMin.y = minPt.y;
-	pointMin.z = minPt.z;
-	pointMax.x = 0;
-	pointMax.y = maxPt.y;
-	pointMax.z = minPt.z;
-	double diameter = pcl::geometry::distance(pointMin, pointMax);
+	pcl::PCA<WSPoint> pca;
+	pca.setInputCloud(cylinderObject);
+	pca.project(*cylinderObject, *cloudPCAprojection);
+	//pca.getEigenVectors();
+	//pca.getEigenValues();
 
-	cupSpecs.objectCloud = cylinderObject;
+	WSPoint minPt;
+	WSPoint maxPt;	
+	pcl::getMinMax3D(*cloudPCAprojection, minPt, maxPt);
+	double diameter = abs(minPt.x)+abs(maxPt.x);
+	
+	cupSpecs.objectCloud = cloudPCAprojection;
 	cupSpecs.orientation = 90;
 	cupSpecs.diameter = diameter - 0.03;
 	
-
 	return cupSpecs;
 }
 /*

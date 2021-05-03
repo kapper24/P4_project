@@ -36,6 +36,7 @@
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/sample_consensus/sac_model_line.h>
 #include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/common/pca.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
