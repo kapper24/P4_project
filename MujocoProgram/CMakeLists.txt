@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 
-project("GUI_test")
+project("Mujoco_Sim")
 
 
 set(CMAKE_CXX_STANDARD 11)
@@ -29,13 +29,13 @@ link_directories(${MUJOCO_MJPRO_PATH})
 set(PROJECT_SOURCES
         main.cpp
 )
-add_executable(GUI_test
+add_executable(Mujoco_Sim
  ${PROJECT_SOURCES}
  )
 
 
 target_link_libraries(
-GUI_test
+Mujoco_Sim
 "mujoco200.dll"
 "glfw3.dll"
 )
