@@ -198,57 +198,62 @@ void MainWindow::PCLupdate()
 				//pipe.stop();
 				//saveRGB2File(serialnumber_, centerObject);
 					objectSpecs objectInfo;
-				if (mjHand == HandState::Idle){
-					const int w = colorimg.as<rs2::video_frame>().get_width();
-					const int h = colorimg.as<rs2::video_frame>().get_height();
-					cv::Mat image(cv::Size(w, h), CV_8UC3, (void*)colorimg.get_data(), cv::Mat::AUTO_STEP);
-					if (std::filesystem::is_empty(ImageFolderPath)) {
-						cv::Rect rectROI(280, 0, 720, 720);
-						cv::Mat imgROI = image(rectROI); //Nu er imgROI vores croppede
-						cv::waitKey(100);
-						cv::imwrite(ImageFolderPath + "\\RGBImage.png", imgROI); //write the image to a file as JPEG 
-						std::cout << "pic saved \n";
-					}
+					if (mjHand == HandState::Idle) {
+						if (centerObject->size() < 400) {
+							graspnum = 4;
+						}
+						else {
+							const int w = colorimg.as<rs2::video_frame>().get_width();
+							const int h = colorimg.as<rs2::video_frame>().get_height();
+							cv::Mat image(cv::Size(w, h), CV_8UC3, (void*)colorimg.get_data(), cv::Mat::AUTO_STEP);
+							if (std::filesystem::is_empty(ImageFolderPath)) {
+								cv::Rect rectROI(280, 0, 720, 720);
+								cv::Mat imgROI = image(rectROI); //Nu er imgROI vores croppede
+								cv::waitKey(100);
+								cv::imwrite(ImageFolderPath + "\\RGBImage.png", imgROI); //write the image to a file as JPEG 
+								std::cout << "pic saved \n";
+							}
 
-					//pipe.start();
-					///////////// return object classification from google here ///////////////////////
-					std::string line;
-					std::cout << "waiting for response from google vision" << std::endl;
-					while (!std::filesystem::is_empty(ImageFolderPath)) {
+							//pipe.start();
+							///////////// return object classification from google here ///////////////////////
+							std::string line;
+							std::cout << "waiting for response from google vision" << std::endl;
+							while (!std::filesystem::is_empty(ImageFolderPath)) {
 
+							}
+							std::ifstream f(readFromPythonPath);
+							std::cout << "readfromPython" << std::endl;
+							cv::waitKey(100);
+							if (getline(f, line))
+								std::cout << line << std::endl;
+							//std::ofstream send("C:\\Users\\Melvin\\Documents\\P4_project\\Read.txt", std::ofstream::trunc);
+							//send << "1 \n";
+							if (line == "Grasp 1") {
+								graspnum = 1;
+								objectInfo = fitCylinder(centerObject);
+								std::cout << line << std::endl;
+							}
+							else if (line == "Grasp 2") {
+								graspnum = 2;
+								objectInfo = fitWine(centerObject);
+							}
+							else if (line == "Grasp 3") {
+								graspnum = 3;
+								objectInfo = fitCup(centerObject);
+							}
+							else if (line == "NULL") {
+								graspnum = 1;
+								objectInfo = fitCylinder(centerObject);
+								std::cout << line << std::endl;
+							}
+							f.clear();
+							filteredObject = objectInfo.objectCloud;
+							orientation = objectInfo.orientation;
+							diameter = objectInfo.diameter;
+							cout << "orientation: " << orientation << endl;
+							cout << "diameter: " << diameter << endl;
+						}
 					}
-					std::ifstream f(readFromPythonPath);
-					std::cout << "readfromPython" << std::endl;
-					cv::waitKey(100);
-					if (getline(f, line))
-						std::cout << line << std::endl;
-					//std::ofstream send("C:\\Users\\Melvin\\Documents\\P4_project\\Read.txt", std::ofstream::trunc);
-					//send << "1 \n";
-					if (line == "Grasp 1") {
-						graspnum = 1;
-						objectInfo = fitCylinder(centerObject);
-						std::cout << line << std::endl;
-					}
-					else if (line == "Grasp 2") {
-						graspnum = 2;
-						objectInfo = fitWine(centerObject);
-					}
-					else if (line == "Grasp 3") {
-						graspnum = 3;
-						objectInfo = fitCup(centerObject);
-					}
-					else if (line == "NULL") {
-						graspnum = 1;
-						objectInfo = fitCylinder(centerObject);
-						std::cout << line << std::endl;
-					}
-					f.clear();
-					filteredObject = objectInfo.objectCloud;
-					orientation = objectInfo.orientation;
-					diameter = objectInfo.diameter;
-					cout << "orientation: " << orientation << endl;
-					cout << "diameter: " << diameter << endl;
-				}
 				else {
 					/*switch (graspnum)
 					{
@@ -385,7 +390,7 @@ MainWindow::WSPointCloudPtr MainWindow::getCenterObject(WSPointCloudPtr objectCl
 	// - https://pcl.readthedocs.io/projects/tutorials/en/latest/cluster_extraction.html#cluster-extraction
 	tree->setInputCloud(objectCloud);
 	cluster.setClusterTolerance(0.01); // 2cm
-	cluster.setMinClusterSize(150);
+	cluster.setMinClusterSize(100);
 	cluster.setMaxClusterSize(2000);
 	cluster.setSearchMethod(tree);
 	cluster.setInputCloud(objectCloud);
@@ -608,80 +613,3 @@ MainWindow::objectSpecs MainWindow::fitCup(WSPointCloudPtr centerObject) {
 	}
 	return cupSpecs;
 }
-/*
-void saveRGB2File(std::string serialnumber_, WSPointCloudPtr centerObject) {
-	/*rs2::config config;
-	config.enable_device(serialnumber_);
-	config.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_BGR8, 15);
-	rs2::pipeline pipe;
-	rs2::pipeline_profile profile = pipe.start(config);
-	//auto frames = pipe.wait_for_frames();
-	//colorimg = frames.get_color_frame();
-
-	const int w = colorimg.as<rs2::video_frame>().get_width();
-	const int h = colorimg.as<rs2::video_frame>().get_height();
-	cv::Mat image(cv::Size(w, h), CV_8UC3, (void*)colorimg.get_data(), cv::Mat::AUTO_STEP);
-
-
-	/////////// Benjas kode /////////////////////
-	float ratioMaxX = objectMaxX / firstMaxX;
-	float ratioMinX = objectMinX / firstMinX;
-	float ratioMaxY = objectMaxY / firstMaxY;
-	float ratioMinY = objectMinY / firstMinY;
-
-	//std::cout << "Ratio " << ratioMaxX << " " << ratioMinX << " " << ratioMaxY << " " << ratioMinY << std::endl;
-
-	float pixelMaxX = abs(640 + (640 * ratioMaxX));
-	float pixelMinX = abs(640 + (640 * ratioMinX));
-	float pixelMaxY = abs(360 + (360 * ratioMaxY));
-	float pixelMinY = abs(360 + (360 * ratioMinY));
-
-	//std::cout << "Pixel " << pixelMaxX << " " << pixelMinX << " " << pixelMaxY << " " << pixelMinY << std::endl;
-
-	float ROIscalar = 0.2; //Vi vil gerne have 20% af objektet
-
-	int width = abs(pixelMaxX - pixelMinX) * ROIscalar; //Bredden af objektet
-	int height = abs(pixelMaxY - pixelMinY) * ROIscalar; //Højden af objektet
-
-	int maxX = (pixelMaxX + (width)); //x til buttom left corner af objekt
-	int minX = (pixelMinX - (width)); //x til upper left corner af objekt
-	int maxY = (pixelMaxY + (height)); //y til upper left corner af objekt
-	int minY = (pixelMinY - (height)); //y til buttom left corner af objekt
-
-	//std::cout << "Corners " << maxX << " " << minX << " " << maxY << " " << minY << std::endl;
-
-	if (minX < 1) //Hvis objektets x1 er uden for billedet: (kan ske grundet de ekstra 20% kant)
-	{
-		minX = 1; //Objektets x1 sættes i billedets hjørne
-	}
-
-	if (minY < 1) //Hvis objektets y1 er uden for billedet:
-	{
-		minY = 1; //Objektets y1 sættes i billedets hjørne
-	}
-
-	if (maxX > 1279) //Hvis objektets x2 er uden for billedet:
-	{
-		maxX = 1279; //Objektets x2 sættes i billedets hjørne (-1 px fordi boundingbox går 1 px udenfor)
-	}
-
-	if (maxY > 719) //Hvis objektets y2 er uden for billedet:
-	{
-		maxY = 719; //Objektets y2 sættes i billedets hjørne (-1 px fordi boundingbox går 1 px udenfor)
-	}
-
-	cv::Point P1(minX, minY); //Upper left corner
-	cv::Point P2(minX, maxY); //Buttom left corner
-	cv::Point P3(maxX, maxY); //Buttom right corner
-
-	cv::RotatedRect rotatedROI = cv::RotatedRect(P1, P2, P3); //Rektangel rotatret rundt om objekt (+20%)
-	cv::Rect rectROI(280,0,720,720);
-	cv::Mat imgROI = image(rectROI); //Nu er imgROI vores croppede
-	cv::waitKey(100);
-
-	imwrite("C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\images\\MyImage.png", imgROI); //write the image to a file as JPEG 
-	cv::waitKey(100);
-	//pipe.stop();
-	//cv::waitKey(10);
-}
-*/

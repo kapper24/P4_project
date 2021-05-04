@@ -247,6 +247,11 @@ int main(int argc, char *argv[])
 					line = "";
 					std::cout << "Grasp " << n << std::endl;
 				}
+				else if (line == "Grasp 4") {
+					n = 4;
+					line = "";
+					std::cout << "Grasp " << n << std::endl;
+				}
 				else if (line == "NULL") {
 					n = 1;
 					line = "";
@@ -262,7 +267,7 @@ int main(int argc, char *argv[])
 				}
 				else if (line == "Idle") {
 					std::cout << "idle" << std::endl;
-					n = 4;
+					n = 5;
 				}
 				else if (line.find("diameter") != std::string::npos) {
 					std::string number = line.substr(9, line.size());
@@ -293,6 +298,10 @@ int main(int argc, char *argv[])
 				keychange = 0;
 				break;
 			case 4:
+				targetpos = can; // kasper, fix dis (tri grip)
+				keychange = 0;
+				break;
+			case 5:
 				targetpos = Idle;
 				keychange = 0;
 			default:
@@ -318,6 +327,10 @@ int main(int argc, char *argv[])
 				keychange = 0;
 				break;
 			case 4:
+				targetpos = ;
+				keychange = 0;
+				break;
+			case 5:
 				targetpos = Idle;
 				keychange = 0;
 			default:
