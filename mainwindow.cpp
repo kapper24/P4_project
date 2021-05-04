@@ -517,14 +517,17 @@ MainWindow::objectSpecs MainWindow::fitWine(WSPointCloudPtr centerObject) {
 	pca.project(*centerObject, *cloudPCAprojection);
 	//pca.getEigenVectors();
 	//pca.getEigenValues();
-
+	Eigen::Matrix3f matrix = pca.getEigenVectors();
+	float oribeta = atan2(-matrix(2, 1), sqrt((matrix(0, 0) * matrix(0, 0)) + (matrix(1, 0) * matrix(1, 0))));
+	float ori = atan2(matrix(2, 1) / sin(oribeta), -matrix(2, 0) / sin(oribeta));
+	//cout << "orientation " << ori << endl;
 	WSPoint minPt;
 	WSPoint maxPt;
 	pcl::getMinMax3D(*cloudPCAprojection, minPt, maxPt);
 	double diameter = abs(minPt.y) + abs(maxPt.y);
 
 	wineSpecs.objectCloud = cloudPCAprojection;
-	wineSpecs.orientation = 90;
+	wineSpecs.orientation = ori;
 	wineSpecs.diameter = diameter;
 	return wineSpecs;
 }
@@ -564,23 +567,43 @@ MainWindow::objectSpecs MainWindow::fitCup(WSPointCloudPtr centerObject) {
 	extract.setNegative(true);
 	extract.filter(*cylinderObject);
 
-	double orientation;
+	if (cylinderObject->size() < 50) {
+		cupSpecs.objectCloud = cylinderObject;
 
-	pcl::PCA<WSPoint> pca;
-	pca.setInputCloud(cylinderObject);
-	pca.project(*cylinderObject, *cloudPCAprojection);
-	//pca.getEigenVectors();
-	//pca.getEigenValues();
+		cupSpecs.diameter = 6;
+	}
+	else {
+		double orientation;
 
-	WSPoint minPt;
-	WSPoint maxPt;	
-	pcl::getMinMax3D(*cloudPCAprojection, minPt, maxPt);
-	double diameter = abs(minPt.x)+abs(maxPt.x);
+		pcl::PCA<WSPoint> pca;
+		pca.setInputCloud(cylinderObject);
+		pca.project(*cylinderObject, *cloudPCAprojection);
 	
-	cupSpecs.objectCloud = cloudPCAprojection;
-	cupSpecs.orientation = 90;
-	cupSpecs.diameter = diameter - 0.03;
+		WSPoint minPt;
+		WSPoint maxPt;
+		pcl::getMinMax3D(*cloudPCAprojection, minPt, maxPt);
+		double diameter = abs(minPt.x) + abs(maxPt.x);
+
+		cupSpecs.objectCloud = cloudPCAprojection;
 	
+		cupSpecs.diameter = diameter - 0.03;
+	}
+
+	if (coefficientsCylinder->values.size() > 0) {
+		double xdir = coefficientsCylinder->values[3];
+		double ydir = coefficientsCylinder->values[4];
+		//radius = coefficientsCylinder->values[6];
+		// Calculate orientation
+
+		cupSpecs.orientation = atan2(ydir, xdir) * 180 / 3.1415;
+
+		if (orientation < 0) {
+			cupSpecs.orientation = orientation + 180;
+		}
+	}
+	else {
+		cupSpecs.orientation = 90;
+	}
 	return cupSpecs;
 }
 /*
