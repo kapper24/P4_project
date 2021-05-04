@@ -192,7 +192,7 @@ void MainWindow::PCLupdate()
 
 			objects = extractObject(filteredCloud);
 			centerObject = getCenterObject(objects);
-
+			cout << "Size: " << centerObject->size() << "\n";
 			if (centerObject != objects) {
 				//pcl::io::savePCDFileASCII("test.pcd", *centerObject); //til at gemme .pcd filer (fuck den lange funktion)
 				//pipe.stop();
@@ -276,7 +276,7 @@ void MainWindow::PCLupdate()
 				cout << "diameter: " << diameter << endl;
 				*/
 				pcl::visualization::PointCloudColorHandlerCustom<WSPoint> cloud_color_h(0, 255, 0);
-				viewer->addPointCloud(filteredObject, cloud_color_h, "cloudname");
+				viewer->addPointCloud(centerObject, cloud_color_h, "cloudname");
 				//viewer->addLine(lineCoeff, "line");
 			}
 				viewer->spinOnce(1, true);
