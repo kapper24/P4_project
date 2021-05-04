@@ -28,6 +28,8 @@ std::vector<float> cup = { -1.63, 0.40, 0.32, 0.4, 0.57, 0, 0, 0.34, 0.27, 1.6, 
 std::vector<float> can = { -1.54, 0, -0.32, 1.55, 0.66, 0, 0, 0.07, 0.24, 0.37, 0.34, 0, 0.24 };
 std::vector<float> Idle = { -1.73,0.05,0.00,1.03,0.43,0.00,0.00,0.00,0.30,0.40,0.34,0.00,0.34 };
 std::vector<float> wineClose = { -3.10, 0, 0, 0.90, 0.66, 0.15, -0.37, 0.34, 0.46, 0.53, 1.60, 0, 1.6 };
+std::vector<float> triClose = { -1.60, 0, 0, 1.55, 1, 0.79, -0.82, 0, 0.75, 0.88, 1.6, 0, 1.6 };
+std::vector<float> triOpen = { -1.60, 0, 0, 1.62, 1, 0.49, -0.82, 0, 0.51, 0.64, 1.6, 0, 1.6 };
 std::vector<float> targetpos;
 int aMujoco = 1;
 bool keychange = 1;
@@ -298,7 +300,7 @@ int main(int argc, char *argv[])
 				keychange = 0;
 				break;
 			case 4:
-				targetpos = can; // kasper, fix dis (tri grip)
+				targetpos = triClose;
 				keychange = 0;
 				break;
 			case 5:
@@ -327,7 +329,7 @@ int main(int argc, char *argv[])
 				keychange = 0;
 				break;
 			case 4:
-				targetpos = ;
+				targetpos = triClose;
 				keychange = 0;
 				break;
 			case 5:
