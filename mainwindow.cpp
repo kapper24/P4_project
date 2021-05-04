@@ -203,8 +203,10 @@ void MainWindow::PCLupdate()
 					const int h = colorimg.as<rs2::video_frame>().get_height();
 					cv::Mat image(cv::Size(w, h), CV_8UC3, (void*)colorimg.get_data(), cv::Mat::AUTO_STEP);
 					if (std::filesystem::is_empty(ImageFolderPath)) {
-
-						cv::imwrite(ImageFolderPath + "\\RGBImage.png", image); //write the image to a file as JPEG 
+						cv::Rect rectROI(280, 0, 720, 720);
+						cv::Mat imgROI = image(rectROI); //Nu er imgROI vores croppede
+						cv::waitKey(100);
+						cv::imwrite(ImageFolderPath + "\\RGBImage.png", imgROI); //write the image to a file as JPEG 
 						std::cout << "pic saved \n";
 					}
 
@@ -673,8 +675,7 @@ void saveRGB2File(std::string serialnumber_, WSPointCloudPtr centerObject) {
 	cv::Point P3(maxX, maxY); //Buttom right corner
 
 	cv::RotatedRect rotatedROI = cv::RotatedRect(P1, P2, P3); //Rektangel rotatret rundt om objekt (+20%)
-	cv::Rect rectROI = rotatedROI.boundingRect(); //Laver en Rect (retvinklet) for at kunne croppe
-
+	cv::Rect rectROI(280,0,720,720);
 	cv::Mat imgROI = image(rectROI); //Nu er imgROI vores croppede
 	cv::waitKey(100);
 
