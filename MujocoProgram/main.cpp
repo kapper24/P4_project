@@ -11,6 +11,9 @@
 
 // load and compile model
 char error[1000] = "Could not load binary model";
+char HelloObjectXML[]{"C:\\Users\Melvin\source\repos\kapper24\P4_project\MujocoProgram\hello.xml" };
+char activateSoftware[]{ "C:\\Users\\Melvin\\Documents\\mujoco Licesne\\mjkey.txt" };
+char readFromPCLPath[]{ "C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\MujocoProgram\\ReadfromPCL.txt" };
 int n;
 float diameter = 5;
 mjModel* m = NULL;                  // MuJoCo model
@@ -24,6 +27,7 @@ std::vector<float> wineglass = { -2.8, 0, 0, 0.4, 0.53, 0, -0.33, 0.44, 0.30, 0.
 std::vector<float> cup = { -1.63, 0.40, 0.32, 0.4, 0.57, 0, 0, 0.34, 0.27, 1.6, 1.6, 0, 1.6 };
 std::vector<float> can = { -1.54, 0, -0.32, 1.55, 0.66, 0, 0, 0.07, 0.24, 0.37, 0.34, 0, 0.24 };
 std::vector<float> Idle = { -1.73,0.05,0.00,1.03,0.43,0.00,0.00,0.00,0.30,0.40,0.34,0.00,0.34 };
+std::vector<float> wineClose = { -3.10, 0, 0, 0.90, 0.66, 0.15, -0.37, 0.34, 0.46, 0.53, 1.60, 0, 1.6 };
 std::vector<float> targetpos;
 int aMujoco = 1;
 bool keychange = 1;
@@ -195,8 +199,8 @@ std::vector<float> close_hand_cup(std::vector<float> oldpos) {
 int main(int argc, char *argv[])
 {
 	// activate software
-	mj_activate("C:\\Users\\Melvin\\Documents\\mujoco Licesne\\mjkey.txt");
-	m = mj_loadXML("C:\\Users\\Melvin\\Documents\\GUI_test\\objects.xml", 0, error, 1000);
+	mj_activate(activateSoftware);
+	m = mj_loadXML(HelloObjectXML, 0, error, 1000);
 	if (!m)
 		mju_error_s("Load model error: %s", error);
 	d = mj_makeData(m);
@@ -226,7 +230,7 @@ int main(int argc, char *argv[])
 		//  this loop will finish on time for the next frame to be rendered at 60 fps.
 		//  Otherwise add a cpu timer and exit this loop when it is time to render.
 		std::string line;
-		std::ifstream f("C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\MujocoProgram\\ReadfromPCL.txt");
+		std::ifstream f(readFromPCLPath);
 			while (getline(f, line)) {
 				if (line == "Grasp 1") {
 					n = 1;
@@ -305,7 +309,7 @@ int main(int argc, char *argv[])
 				keychange = 0;
 				break;
 			case 2:
-				targetpos = wineglass;
+				targetpos = wineClose;
 				keychange = 0;
 				break;
 			case 3:
