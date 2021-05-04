@@ -128,7 +128,7 @@ void MainWindow::on_OpenCloseButton_clicked()
 	else if(mjHand == HandState::Open && openclose == 0)
 	{
 		std::ofstream send(readFromPCLPath, std::ofstream::trunc);
-		send << "Grasp " << graspnum << "\n" << "diameter "<< diameter << "\n" << "Close";
+		send << "Grasp " << graspnum << "\n" << "Close";
 		std::cout << "close";
 		mjHand = HandState::Close;
 	}
@@ -241,9 +241,14 @@ void MainWindow::PCLupdate()
 						std::cout << line << std::endl;
 					}
 					f.clear();
+					filteredObject = objectInfo.objectCloud;
+					orientation = objectInfo.orientation;
+					diameter = objectInfo.diameter;
+					cout << "orientation: " << orientation << endl;
+					cout << "diameter: " << diameter << endl;
 				}
 				else {
-					switch (graspnum)
+					/*switch (graspnum)
 					{
 					case 1:
 						objectInfo = fitCylinder(centerObject);
@@ -256,15 +261,18 @@ void MainWindow::PCLupdate()
 						break;
 					default:
 						break;
-					}
+					}*/
+					cout << "Grasp " << graspnum << std::endl;
+					cout << "orientation: " << orientation << endl;
+					cout << "diameter: " << diameter << endl;
 				}
 				//objectInfo = fitCylinder(centerObject);
-				filteredObject = objectInfo.objectCloud;
+				/*filteredObject = objectInfo.objectCloud;
 				orientation = objectInfo.orientation;
 				diameter = objectInfo.diameter;
 				cout << "orientation: " << orientation << endl;
 				cout << "diameter: " << diameter << endl;
-
+				*/
 				pcl::visualization::PointCloudColorHandlerCustom<WSPoint> cloud_color_h(0, 255, 0);
 				viewer->addPointCloud(filteredObject, cloud_color_h, "cloudname");
 				//viewer->addLine(lineCoeff, "line");

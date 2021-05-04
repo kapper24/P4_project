@@ -12,6 +12,7 @@
 // load and compile model
 char error[1000] = "Could not load binary model";
 int n;
+float diameter = 5;
 mjModel* m = NULL;                  // MuJoCo model
 mjData* d = NULL;                   // MuJoCo data
 mjvCamera cam;                      // abstract camera
@@ -140,6 +141,57 @@ void scroll(GLFWwindow* window, double xoffset, double yoffset)
 	mjv_moveCamera(m, mjMOUSE_ZOOM, 0, -0.05 * yoffset, &scn, &cam);
 }
 
+float calculatefingerjointcylinder(float fingersize, float diameter) {
+	float num_fingers_around_cirkle = ((diameter + 2) * 3.14) / fingersize;
+	float cornerangles = 180 - (((180 * num_fingers_around_cirkle) - 360) / num_fingers_around_cirkle);
+	float angle_radians = cornerangles * 0.017453;
+	return angle_radians;
+}
+
+std::vector<float> calculate_aperture_closingcylinder(float diameter, std::vector<float> currenthandpos) {
+	std::vector<float> newhandpos = currenthandpos;
+	newhandpos[8] = calculatefingerjointcylinder(2.6, diameter);
+	newhandpos[9] = calculatefingerjointcylinder(3, diameter);
+	newhandpos[10] = calculatefingerjointcylinder(2.7, diameter);
+	newhandpos[12] = calculatefingerjointcylinder(2, diameter);
+	return newhandpos;
+}
+
+std::vector<float> calculate_aperture_closing_cup(float cupheight) {
+	std::vector<float> newhandpos;
+	if (cupheight < 8)
+	{
+		newhandpos = { -1.60, 0, 0, 0, 0, 0, 0, 0, 0.13, 1.6, 1.6, 0, 1.6 };
+	}
+	else if (cupheight >= 8 && cupheight <= 12)
+	{
+		newhandpos = { -1.60, 0, 0, 0, 0, 0, 0, 0, 0.13, 0.18, 1.6, 0, 1.6 };
+	}
+	else if (cupheight > 12)
+	{
+		newhandpos = { -1.60, 0, 0, 0, 0, 0, 0, 0, 0.13, 0.18, 0.10, 0, 1.6 };
+	}
+	return newhandpos;
+}
+
+std::vector<float> close_hand_cup(std::vector<float> oldpos) {
+	std::vector<float> newhandpos;
+	if (oldpos[10] < 1.6)
+	{
+		newhandpos = { -1.60, 0, 0, 0.52, 1, 0.51, 0, 0, 0.91, 1.02, 0.99, 0, 1.6 };
+	}
+	else if (oldpos[9] < 1.6)
+	{
+		newhandpos = { -1.60, 0, 0, 0.52, 1, 0.51, 0, 0, 0.91, 1.02, 1.6, 0, 1.6 };
+	}
+	else if (oldpos[8] < 1.6)
+	{
+		newhandpos = { -1.60, 0, 0, 0.52, 1, 0.51, 0, 0, 0.91, 1.6, 1.6, 0, 1.6 };
+	}
+	return newhandpos;
+}
+
+
 int main(int argc, char *argv[])
 {
 	// activate software
@@ -174,7 +226,7 @@ int main(int argc, char *argv[])
 		//  this loop will finish on time for the next frame to be rendered at 60 fps.
 		//  Otherwise add a cpu timer and exit this loop when it is time to render.
 		std::string line;
-		std::ifstream f("C:\\Users\\Melvin\\Documents\\GUI_test\\ReadfromPCL.txt");
+		std::ifstream f("C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\MujocoProgram\\ReadfromPCL.txt");
 			while (getline(f, line)) {
 				if (line == "Grasp 1") {
 					n = 1;
@@ -208,6 +260,11 @@ int main(int argc, char *argv[])
 					std::cout << "idle" << std::endl;
 					n = 4;
 				}
+				else if (line.find("diameter") != std::string::npos) {
+					std::string number = line.substr(9, line.size());
+					diameter = std::stof(number) * 100;
+					std::cout << "diameter:" << diameter << "\n";
+				}
 			};
 				//std::cout << line << std::endl;
 			
@@ -220,7 +277,7 @@ int main(int argc, char *argv[])
 			switch (n)
 			{
 			case 1:
-				targetpos = can;
+				targetpos = calculate_aperture_closingcylinder(diameter, can);
 				keychange = 0;
 				break;
 			case 2:
@@ -228,7 +285,7 @@ int main(int argc, char *argv[])
 				keychange = 0;
 				break;
 			case 3:
-				targetpos = cup;
+				targetpos = calculate_aperture_closing_cup(diameter);
 				keychange = 0;
 				break;
 			case 4:
@@ -242,7 +299,9 @@ int main(int argc, char *argv[])
 			switch (n)
 			{
 			case 1:
-				targetpos = can;
+				//targetpos = can;
+				//targetpos = calculate_aperture_closingcylinder(diameter, can);
+				targetpos[4] = 1.03;
 				keychange = 0;
 				break;
 			case 2:
@@ -250,7 +309,8 @@ int main(int argc, char *argv[])
 				keychange = 0;
 				break;
 			case 3:
-				targetpos = cup;
+				targetpos = calculate_aperture_closing_cup(diameter);
+				targetpos = close_hand_cup(targetpos);
 				keychange = 0;
 				break;
 			case 4:
