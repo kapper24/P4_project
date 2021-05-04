@@ -18,7 +18,7 @@ MainWindow::MainWindow(QWidget* parent)
 	ui_IdleButton = findChild<QPushButton*>("IdleButton");
 	ui_GraspGorithmLabel = findChild<QLabel*>("GraspGorithmLabel");
 
-	std::ofstream send("C:\\Users\\Melvin\\Documents\\GUI_test\\ReadfromPCL.txt", std::ofstream::trunc);
+	std::ofstream send(readFromPCLPath, std::ofstream::trunc);
 	send << "Idle" << "\n";
 	mjHand = HandState::Idle;
 
@@ -118,8 +118,8 @@ void MainWindow::on_OpenCloseButton_clicked()
 	openclose++;
 	if (mjHand == HandState::Idle && openclose == 2) {
 		if (graspnum != 0) {
-			std::ofstream send("C:\\Users\\Melvin\\Documents\\GUI_test\\ReadfromPCL.txt", std::ofstream::trunc);
-			send << "Grasp " << graspnum << "\n" << "diameter " << "\n" << "Open";
+			std::ofstream send(readFromPCLPath, std::ofstream::trunc);
+			send << "Grasp " << graspnum << "\n" << "diameter " << diameter << "\n" << "Open";
 			std::cout << "open";
 			openclose = -2;
 			mjHand = HandState::Open;
@@ -127,13 +127,13 @@ void MainWindow::on_OpenCloseButton_clicked()
 	}
 	else if(mjHand == HandState::Open && openclose == 0)
 	{
-		std::ofstream send("C:\\Users\\Melvin\\Documents\\GUI_test\\ReadfromPCL.txt", std::ofstream::trunc);
-		send << "Grasp " << graspnum << "\n" << "Close";
+		std::ofstream send(readFromPCLPath, std::ofstream::trunc);
+		send << "Grasp " << graspnum << "\n" << "diameter "<< diameter << "\n" << "Close";
 		std::cout << "close";
 		mjHand = HandState::Close;
 	}
 	else if (mjHand == HandState::Close && openclose == 2) {
-		std::ofstream send("C:\\Users\\Melvin\\Documents\\GUI_test\\ReadfromPCL.txt", std::ofstream::trunc);
+		std::ofstream send(readFromPCLPath, std::ofstream::trunc);
 		send << "Grasp " << graspnum << "\n" << "Open";
 		std::cout << "Open";
 		openclose = -2;
@@ -174,8 +174,7 @@ void MainWindow::PCLupdate()
 		WSPointCloudPtr centerObject(new WSPointCloud);
 		WSPointCloudPtr filteredObject(new WSPointCloud);
 		//pcl::ModelCoefficients lineCoeff;
-		double orientation;
-		double diameter;
+		
 
 		viewer->removeAllShapes();
 		viewer->removeAllPointClouds();
@@ -203,9 +202,9 @@ void MainWindow::PCLupdate()
 					const int w = colorimg.as<rs2::video_frame>().get_width();
 					const int h = colorimg.as<rs2::video_frame>().get_height();
 					cv::Mat image(cv::Size(w, h), CV_8UC3, (void*)colorimg.get_data(), cv::Mat::AUTO_STEP);
-					if (std::filesystem::is_empty("C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\images")) {
+					if (std::filesystem::is_empty(ImageFolderPath)) {
 
-						cv::imwrite("C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\images\\MyImage.png", image); //write the image to a file as JPEG 
+						cv::imwrite(ImageFolderPath + "\\RGBImage.png", image); //write the image to a file as JPEG 
 						std::cout << "pic saved \n";
 					}
 
@@ -213,10 +212,10 @@ void MainWindow::PCLupdate()
 					///////////// return object classification from google here ///////////////////////
 					std::string line;
 					std::cout << "waiting for response from google vision" << std::endl;
-					while (!std::filesystem::is_empty("C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\images")) {
+					while (!std::filesystem::is_empty(ImageFolderPath)) {
 
 					}
-					std::ifstream f("C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\ReadfromPython.txt");
+					std::ifstream f(readFromPythonPath);
 					std::cout << "readfromPython" << std::endl;
 					cv::waitKey(100);
 					if (getline(f, line))

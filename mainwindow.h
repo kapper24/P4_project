@@ -65,6 +65,13 @@ private:
     QPushButton* ui_StartQuitButton;
     QPushButton* ui_IdleButton;
     QLabel* ui_GraspGorithmLabel;
+    double orientation = 0;
+    double diameter = 0;
+
+    std::string readFromPCLPath = "C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\MujocoProgram\\ReadfromPCL.txt";
+    std::string ImageFolderPath = "C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\images";
+    std::string readFromPythonPath = "C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\ReadfromPython.txt";
+   
     enum HandState{
         Open,
         Close,
