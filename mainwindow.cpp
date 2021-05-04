@@ -199,12 +199,10 @@ void MainWindow::PCLupdate()
 				//saveRGB2File(serialnumber_, centerObject);
 					objectSpecs objectInfo;
 					if (mjHand == HandState::Idle) {
-						if (centerObject->size() < 300) {
+						if (centerObject->size() < 400) {
 							graspnum = 4;
 						}
 						else {
-
-
 							const int w = colorimg.as<rs2::video_frame>().get_width();
 							const int h = colorimg.as<rs2::video_frame>().get_height();
 							cv::Mat image(cv::Size(w, h), CV_8UC3, (void*)colorimg.get_data(), cv::Mat::AUTO_STEP);
@@ -392,7 +390,7 @@ MainWindow::WSPointCloudPtr MainWindow::getCenterObject(WSPointCloudPtr objectCl
 	// - https://pcl.readthedocs.io/projects/tutorials/en/latest/cluster_extraction.html#cluster-extraction
 	tree->setInputCloud(objectCloud);
 	cluster.setClusterTolerance(0.01); // 2cm
-	cluster.setMinClusterSize(150);
+	cluster.setMinClusterSize(100);
 	cluster.setMaxClusterSize(2000);
 	cluster.setSearchMethod(tree);
 	cluster.setInputCloud(objectCloud);
