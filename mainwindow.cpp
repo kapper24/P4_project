@@ -198,57 +198,64 @@ void MainWindow::PCLupdate()
 				//pipe.stop();
 				//saveRGB2File(serialnumber_, centerObject);
 					objectSpecs objectInfo;
-				if (mjHand == HandState::Idle){
-					const int w = colorimg.as<rs2::video_frame>().get_width();
-					const int h = colorimg.as<rs2::video_frame>().get_height();
-					cv::Mat image(cv::Size(w, h), CV_8UC3, (void*)colorimg.get_data(), cv::Mat::AUTO_STEP);
-					if (std::filesystem::is_empty(ImageFolderPath)) {
-						cv::Rect rectROI(280, 0, 720, 720);
-						cv::Mat imgROI = image(rectROI); //Nu er imgROI vores croppede
-						cv::waitKey(100);
-						cv::imwrite(ImageFolderPath + "\\RGBImage.png", imgROI); //write the image to a file as JPEG 
-						std::cout << "pic saved \n";
-					}
+					if (mjHand == HandState::Idle) {
+						if (centerObject->size() < 300) {
+							graspnum = 4;
+						}
+						else {
 
-					//pipe.start();
-					///////////// return object classification from google here ///////////////////////
-					std::string line;
-					std::cout << "waiting for response from google vision" << std::endl;
-					while (!std::filesystem::is_empty(ImageFolderPath)) {
 
+							const int w = colorimg.as<rs2::video_frame>().get_width();
+							const int h = colorimg.as<rs2::video_frame>().get_height();
+							cv::Mat image(cv::Size(w, h), CV_8UC3, (void*)colorimg.get_data(), cv::Mat::AUTO_STEP);
+							if (std::filesystem::is_empty(ImageFolderPath)) {
+								cv::Rect rectROI(280, 0, 720, 720);
+								cv::Mat imgROI = image(rectROI); //Nu er imgROI vores croppede
+								cv::waitKey(100);
+								cv::imwrite(ImageFolderPath + "\\RGBImage.png", imgROI); //write the image to a file as JPEG 
+								std::cout << "pic saved \n";
+							}
+
+							//pipe.start();
+							///////////// return object classification from google here ///////////////////////
+							std::string line;
+							std::cout << "waiting for response from google vision" << std::endl;
+							while (!std::filesystem::is_empty(ImageFolderPath)) {
+
+							}
+							std::ifstream f(readFromPythonPath);
+							std::cout << "readfromPython" << std::endl;
+							cv::waitKey(100);
+							if (getline(f, line))
+								std::cout << line << std::endl;
+							//std::ofstream send("C:\\Users\\Melvin\\Documents\\P4_project\\Read.txt", std::ofstream::trunc);
+							//send << "1 \n";
+							if (line == "Grasp 1") {
+								graspnum = 1;
+								objectInfo = fitCylinder(centerObject);
+								std::cout << line << std::endl;
+							}
+							else if (line == "Grasp 2") {
+								graspnum = 2;
+								objectInfo = fitWine(centerObject);
+							}
+							else if (line == "Grasp 3") {
+								graspnum = 3;
+								objectInfo = fitCup(centerObject);
+							}
+							else if (line == "NULL") {
+								graspnum = 1;
+								objectInfo = fitCylinder(centerObject);
+								std::cout << line << std::endl;
+							}
+							f.clear();
+							filteredObject = objectInfo.objectCloud;
+							orientation = objectInfo.orientation;
+							diameter = objectInfo.diameter;
+							cout << "orientation: " << orientation << endl;
+							cout << "diameter: " << diameter << endl;
+						}
 					}
-					std::ifstream f(readFromPythonPath);
-					std::cout << "readfromPython" << std::endl;
-					cv::waitKey(100);
-					if (getline(f, line))
-						std::cout << line << std::endl;
-					//std::ofstream send("C:\\Users\\Melvin\\Documents\\P4_project\\Read.txt", std::ofstream::trunc);
-					//send << "1 \n";
-					if (line == "Grasp 1") {
-						graspnum = 1;
-						objectInfo = fitCylinder(centerObject);
-						std::cout << line << std::endl;
-					}
-					else if (line == "Grasp 2") {
-						graspnum = 2;
-						objectInfo = fitWine(centerObject);
-					}
-					else if (line == "Grasp 3") {
-						graspnum = 3;
-						objectInfo = fitCup(centerObject);
-					}
-					else if (line == "NULL") {
-						graspnum = 1;
-						objectInfo = fitCylinder(centerObject);
-						std::cout << line << std::endl;
-					}
-					f.clear();
-					filteredObject = objectInfo.objectCloud;
-					orientation = objectInfo.orientation;
-					diameter = objectInfo.diameter;
-					cout << "orientation: " << orientation << endl;
-					cout << "diameter: " << diameter << endl;
-				}
 				else {
 					/*switch (graspnum)
 					{
