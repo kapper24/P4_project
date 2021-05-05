@@ -199,8 +199,8 @@ void MainWindow::PCLupdate()
 				//saveRGB2File(serialnumber_, centerObject);
 					objectSpecs objectInfo;
 					if (mjHand == HandState::Idle) {
-						if (centerObject->size() < 400) {
-							graspnum = 4;
+						if (centerObject->size() < 200) {
+							graspnum = 5;
 						}
 						else {
 							const int w = colorimg.as<rs2::video_frame>().get_width();
@@ -237,12 +237,16 @@ void MainWindow::PCLupdate()
 								graspnum = 2;
 								objectInfo = fitWine(centerObject);
 								if (objectInfo.diameter < 4) {
-									graspnum = 4;
+									graspnum = 5;
 								}
 							}
 							else if (line == "Grasp 3") {
 								graspnum = 3;
 								objectInfo = fitCup(centerObject);
+							}
+							else if (line == "Grasp 4") {
+								graspnum = 4;
+								objectInfo = fitSphere(centerObject);
 							}
 							else if (line == "NULL") {
 								graspnum = 1;
@@ -619,4 +623,51 @@ MainWindow::objectSpecs MainWindow::fitCup(WSPointCloudPtr centerObject) {
 		cupSpecs.orientation = 90;
 	}
 	return cupSpecs;
+}
+MainWindow::objectSpecs MainWindow::fitSphere(WSPointCloudPtr centerObject) {
+	objectSpecs newSphere;
+
+	pcl::NormalEstimation<WSPoint, pcl::Normal> norm;
+	pcl::SACSegmentationFromNormals<WSPoint, pcl::Normal> segNorm;
+	pcl::ExtractIndices<WSPoint> extract;
+	double orientation;
+	double radius;
+
+	//Normals til cylinder 
+	pcl::PointCloud<pcl::Normal>::Ptr sphereNormals(new pcl::PointCloud<pcl::Normal>);
+	norm.setInputCloud(centerObject);
+	norm.setKSearch(25);
+	norm.compute(*sphereNormals);
+
+	//Segmentere cylinder 
+	// - https://pcl.readthedocs.io/projects/tutorials/en/master/cylinder_segmentation.html#cylinder-segmentation
+
+	pcl::ModelCoefficients::Ptr coefficientsSphere(new pcl::ModelCoefficients);
+	pcl::PointIndices::Ptr inliersSphere(new pcl::PointIndices);
+	WSPointCloudPtr sphere(new WSPointCloud);
+	//pcl::ModelCoefficients lineCoeff; // dette bruges til at lave en linje i den retning som cylinderen peger
+	//lineCoeff.values.resize(6);  // We need 6 values
+	segNorm.setOptimizeCoefficients(true);
+	segNorm.setModelType(pcl::SACMODEL_NORMAL_SPHERE);
+	segNorm.setMethodType(pcl::SAC_RANSAC);
+	segNorm.setNormalDistanceWeight(0.1);
+	segNorm.setMaxIterations(10000);
+	segNorm.setDistanceThreshold(0.03); // test det her
+	segNorm.setRadiusLimits(0.01, 0.06);
+	segNorm.setInputCloud(centerObject);
+	segNorm.setInputNormals(sphereNormals);
+	segNorm.segment(*inliersSphere, *coefficientsSphere);
+
+	extract.setInputCloud(centerObject);
+	extract.setIndices(inliersSphere);
+	extract.setNegative(false);
+	extract.filter(*sphere);
+	
+	radius = coefficientsSphere->values[3]; 
+
+	newSphere.objectCloud = sphere;
+	newSphere.orientation = 90;
+	newSphere.diameter = radius * 2;
+
+	return newSphere;
 }

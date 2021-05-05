@@ -7,8 +7,8 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Add source to this project's executable.
-set(MUJOCO_MJPRO_PATH "C://Users/Melvin/Documents/mujoco200_win64/bin")
-set(MUJOCO_MJPRO_INCLUDE "C://Users/Melvin/Documents/mujoco200_win64/include")
+set(MUJOCO_MJPRO_PATH "C:\\mujoco200_win64\\bin")
+set(MUJOCO_MJPRO_INCLUDE "C:\\mujoco200_win64\\include")
 
 #Options
 set(SRCS main.cpp)
