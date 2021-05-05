@@ -34,13 +34,16 @@ def detectObjects(path):
             elif ('Cup'  in label.description) or ('Cofee cup'  in label.description):
                 print('Cup: Grasp 3')
                 return 'Grasp 3'
+            elif ('Tennis ball' in label.description) or ('Apple' in label.description):
+                print('Sphere: Grasp 4')
+                return 'Grasp 4'
         print('nothing detected')
         return 'NULL'
             
 
 while True:
     # The name of the image file to annotate
-    directory = 'C:/Users/Melvin/source/repos/kapper24/P4_project/images'
+    directory = 'C:/Users/soren/Desktop/Semesterprojects/Semester 4/VisionImages'
     dirs = os.listdir(directory)
     if dirs.__sizeof__()>41:
         filename = dirs[0]
@@ -48,7 +51,7 @@ while True:
         imagePath = os.path.join(directory, filename)
         time.sleep(0.1)
         #Detect objects and send to txt file
-        write = open('C:/Users/Melvin/source/repos/kapper24/P4_project/ReadfromPython.txt','w')
+        write = open('C:/Users/soren/source/repos/P4_project/ReadfromPython.txt','w')
         write.write(detectObjects(imagePath))
         write.close()
         time.sleep(0.1)

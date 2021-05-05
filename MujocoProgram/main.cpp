@@ -11,9 +11,9 @@
 
 // load and compile model
 char error[1000] = "Could not load binary model";
-char HelloObjectXML[]{"C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\MujocoProgram\\hello.xml" };
-char activateSoftware[]{ "C:\\Users\\Melvin\\Documents\\mujoco Licesne\\mjkey.txt" };
-char readFromPCLPath[]{ "C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\MujocoProgram\\ReadfromPCL.txt" };
+char HelloObjectXML[]{"C:\\Users\\soren\\source\\repos\\P4_project\\MujocoProgram\\hello.xml" };
+char activateSoftware[]{ "C:\\mujoco200_win64\\bin\\mjkey.txt" };
+char readFromPCLPath[]{ "C:\\Users\\soren\\source\\repos\\P4_project\\MujocoProgram\\ReadfromPCL.txt" };
 int n;
 float diameter = 5;
 float orientation = 90;
@@ -26,7 +26,7 @@ mjrContext con;                     // custom GPU context
 std::vector<float> handpos = { 0, 0, 0 };
 std::vector<float> wineglass = { -2.8, 0, 0, 0.4, 0.53, 0, -0.33, 0.44, 0.30, 0.37, 1.6, 0, 1.6 };
 std::vector<float> cup = { -1.63, 0.40, 0.32, 0.4, 0.57, 0, 0, 0.34, 0.27, 1.6, 1.6, 0, 1.6 };
-std::vector<float> can = { -1.54, 0, -0.32, 1.55, 0.66, 0, 0, 0.07, 0.24, 0.37, 0.34, 0, 0.24 };
+std::vector<float> can = { -1.54, 0, -0.32, 1.55, 0, 0, 0, 0.07, 0.24, 0.37, 0.34, 0, 0.24 };
 std::vector<float> Idle = { -1.73,0.05,0.00,1.03,0.43,0.00,0.00,0.00,0.30,0.40,0.34,0.00,0.34 };
 std::vector<float> wineClose = { -3.10, 0, 0, 0.90, 0.66, 0.15, -0.37, 0.34, 0.46, 0.53, 1.60, 0, 1.6 };
 std::vector<float> triClose = { -1.60, 0, 0, 1.55, 1, 0.79, -0.82, 0, 0.75, 0.88, 1.6, 0, 1.6 };
@@ -198,6 +198,17 @@ std::vector<float> close_hand_cup(std::vector<float> oldpos) {
 	return newhandpos;
 }
 
+std::vector<float> calculate_aperture_closing_sphere(float diameter, std::vector<float> currenthandpos) {
+	std::vector<float> newhandpos = currenthandpos;
+	newhandpos[7] = 0.22;
+	newhandpos[8] = calculatefingerjointcylinder(2.6, diameter) + 0.15;
+	newhandpos[9] = calculatefingerjointcylinder(3, diameter);
+	newhandpos[10] = calculatefingerjointcylinder(2.7, diameter);
+	newhandpos[11] = 0.22;
+	newhandpos[12] = calculatefingerjointcylinder(2, diameter) + 0.15;
+	return newhandpos;
+}
+
 float fixorient(float zeroorient, float objectorient) {
 	objectorient *= 0.017;
 	float handorient = zeroorient + objectorient;
@@ -260,6 +271,11 @@ int main(int argc, char *argv[])
 					line = "";
 					std::cout << "Grasp " << n << std::endl;
 				}
+				else if (line == "Grasp 5") {
+					n = 5;
+					line = "";
+					std::cout << "Grasp " << n << std::endl;
+				}
 				else if (line == "NULL") {
 					n = 1;
 					line = "";
@@ -275,7 +291,7 @@ int main(int argc, char *argv[])
 				}
 				else if (line == "Idle") {
 					std::cout << "idle" << std::endl;
-					n = 5;
+					n = 6;
 				}
 				else if (line.find("diameter") != std::string::npos) {
 					std::string number = line.substr(9, line.size());
@@ -314,11 +330,16 @@ int main(int argc, char *argv[])
 				keychange = 0;
 				break;
 			case 4:
+				targetpos = calculate_aperture_closing_sphere(diameter, can);
+				targetpos[0] = fixorient(can[0], 90);
+				keychange = 0;
+				break;
+			case 5:
 				targetpos = triOpen;
 				targetpos[0] = fixorient(triOpen[0], orientation);
 				keychange = 0;
 				break;
-			case 5:
+			case 6:
 				targetpos = Idle;
 				keychange = 0;
 			default:
@@ -346,11 +367,16 @@ int main(int argc, char *argv[])
 				keychange = 0;
 				break;
 			case 4:
+				targetpos[4] = 1.03;
+				targetpos[0] = fixorient(can[0], 90);
+				keychange = 0;
+				break;
+			case 5:
 				targetpos = triClose;
 				targetpos[0] = fixorient(triClose[0], orientation);
 				keychange = 0;
 				break;
-			case 5:
+			case 6:
 				targetpos = Idle;
 				keychange = 0;
 			default:

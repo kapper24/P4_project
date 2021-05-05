@@ -68,9 +68,9 @@ private:
     double orientation = 0;
     double diameter = 0;
 
-    std::string readFromPCLPath = "C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\MujocoProgram\\ReadfromPCL.txt";
-    std::string ImageFolderPath = "C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\images";
-    std::string readFromPythonPath = "C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\ReadfromPython.txt";
+    std::string readFromPCLPath = "C:\\Users\\soren\\source\\repos\\P4_project\\MujocoProgram\\ReadfromPCL.txt";
+    std::string ImageFolderPath = "C:\\Users\\soren\\Desktop\\Semesterprojects\\Semester 4\\VisionImages";
+    std::string readFromPythonPath = "C:\\Users\\soren\\source\\repos\\P4_project\\ReadfromPython.txt";
    
     enum HandState{
         Open,
@@ -122,5 +122,6 @@ private:
     objectSpecs fitCylinder(WSPointCloudPtr centerObject);
     objectSpecs fitWine(WSPointCloudPtr centerObject);
     objectSpecs fitCup(WSPointCloudPtr centerObject);
+    objectSpecs fitSphere(WSPointCloudPtr centerObject);
 };
 #endif // MAINWINDOW_H
