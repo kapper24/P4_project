@@ -521,6 +521,13 @@ MainWindow::objectSpecs MainWindow::fitCylinder(WSPointCloudPtr centerObject) {
 }
 MainWindow::objectSpecs MainWindow::fitWine(WSPointCloudPtr centerObject) {
 	objectSpecs wineSpecs;
+	double orientation= 90;
+	if (centerObject->size() < 50) {
+		wineSpecs.objectCloud = centerObject;
+		wineSpecs.diameter = 6;
+		wineSpecs.orientation = orientation;
+	}
+	else {
 	pcl::PCA<pcl::PointXYZ> pca;
 	WSPointCloudPtr cloudPCAprojection(new WSPointCloud);
 	pca.setInputCloud(centerObject);
@@ -531,47 +538,11 @@ MainWindow::objectSpecs MainWindow::fitWine(WSPointCloudPtr centerObject) {
 	pcl::getMinMax3D(*cloudPCAprojection, minPt, maxPt);
 	double diameter = abs(minPt.y) + abs(maxPt.y);
 
-	pcl::ModelCoefficients::Ptr coefficientsCylinder(new pcl::ModelCoefficients);
-	pcl::PointIndices::Ptr inliersCylinder(new pcl::PointIndices);
-	WSPointCloudPtr cylinder(new WSPointCloud);
-	pcl::SACSegmentationFromNormals<WSPoint, pcl::Normal> segNorm;
-	pcl::PointCloud<pcl::Normal>::Ptr cylinderNormals(new pcl::PointCloud<pcl::Normal>);
-	pcl::NormalEstimation<WSPoint, pcl::Normal> norm;
-	norm.setInputCloud(centerObject);
-	norm.setKSearch(25);
-	norm.compute(*cylinderNormals);
-	//pcl::ModelCoefficients lineCoeff; // dette bruges til at lave en linje i den retning som cylinderen peger
-	//lineCoeff.values.resize(6);  // We need 6 values
-	segNorm.setOptimizeCoefficients(true);
-	segNorm.setModelType(pcl::SACMODEL_CYLINDER);
-	segNorm.setMethodType(pcl::SAC_RANSAC);
-	segNorm.setNormalDistanceWeight(0.1);
-	segNorm.setMaxIterations(10000);
-	segNorm.setDistanceThreshold(0.03); // test det her
-	segNorm.setRadiusLimits(0.01, 0.08);
-	segNorm.setInputCloud(centerObject);
-	segNorm.setInputNormals(cylinderNormals);
-	segNorm.segment(*inliersCylinder, *coefficientsCylinder);
-
-	double orientation;
-	if (coefficientsCylinder->values.size() > 0) {
-		double xdir = coefficientsCylinder->values[3];
-		double ydir = coefficientsCylinder->values[4];
-		// Calculate orientation
-
-		orientation = atan2(ydir, xdir) * 180 / 3.1415;
-
-		if (orientation < 0) {
-			orientation = orientation + 180;
-		}
-	}
-	else {
-		orientation = 90;
-	}
-
 	wineSpecs.objectCloud = cloudPCAprojection;
 	wineSpecs.orientation = orientation;
 	wineSpecs.diameter = diameter;
+
+	}
 	return wineSpecs;
 }
 MainWindow::objectSpecs MainWindow::fitCup(WSPointCloudPtr centerObject) {
