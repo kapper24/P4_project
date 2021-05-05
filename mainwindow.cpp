@@ -236,6 +236,9 @@ void MainWindow::PCLupdate()
 							else if (line == "Grasp 2") {
 								graspnum = 2;
 								objectInfo = fitWine(centerObject);
+								if (objectInfo.diameter < 4) {
+									graspnum = 4;
+								}
 							}
 							else if (line == "Grasp 3") {
 								graspnum = 3;
