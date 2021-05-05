@@ -119,7 +119,7 @@ void MainWindow::on_OpenCloseButton_clicked()
 	if (mjHand == HandState::Idle && openclose == 2) {
 		if (graspnum != 0) {
 			std::ofstream send(readFromPCLPath, std::ofstream::trunc);
-			send << "Grasp " << graspnum << "\n" << "diameter " << diameter << "\n" << "Open";
+			send << "Grasp " << graspnum << "\n" << "diameter " << diameter << "\n"  << "orientation " << orientation << "\n" << "Open";
 			std::cout << "open";
 			openclose = -2;
 			mjHand = HandState::Open;
@@ -522,19 +522,52 @@ MainWindow::objectSpecs MainWindow::fitWine(WSPointCloudPtr centerObject) {
 	WSPointCloudPtr cloudPCAprojection(new WSPointCloud);
 	pca.setInputCloud(centerObject);
 	pca.project(*centerObject, *cloudPCAprojection);
-	//pca.getEigenVectors();
-	//pca.getEigenValues();
-	Eigen::Matrix3f matrix = pca.getEigenVectors();
-	float oribeta = atan2(-matrix(2, 1), sqrt((matrix(0, 0) * matrix(0, 0)) + (matrix(1, 0) * matrix(1, 0))));
-	float ori = atan2(matrix(2, 1) / sin(oribeta), -matrix(2, 0) / sin(oribeta));
-	//cout << "orientation " << ori << endl;
+
 	WSPoint minPt;
 	WSPoint maxPt;
 	pcl::getMinMax3D(*cloudPCAprojection, minPt, maxPt);
 	double diameter = abs(minPt.y) + abs(maxPt.y);
 
+	pcl::ModelCoefficients::Ptr coefficientsCylinder(new pcl::ModelCoefficients);
+	pcl::PointIndices::Ptr inliersCylinder(new pcl::PointIndices);
+	WSPointCloudPtr cylinder(new WSPointCloud);
+	pcl::SACSegmentationFromNormals<WSPoint, pcl::Normal> segNorm;
+	pcl::PointCloud<pcl::Normal>::Ptr cylinderNormals(new pcl::PointCloud<pcl::Normal>);
+	pcl::NormalEstimation<WSPoint, pcl::Normal> norm;
+	norm.setInputCloud(centerObject);
+	norm.setKSearch(25);
+	norm.compute(*cylinderNormals);
+	//pcl::ModelCoefficients lineCoeff; // dette bruges til at lave en linje i den retning som cylinderen peger
+	//lineCoeff.values.resize(6);  // We need 6 values
+	segNorm.setOptimizeCoefficients(true);
+	segNorm.setModelType(pcl::SACMODEL_CYLINDER);
+	segNorm.setMethodType(pcl::SAC_RANSAC);
+	segNorm.setNormalDistanceWeight(0.1);
+	segNorm.setMaxIterations(10000);
+	segNorm.setDistanceThreshold(0.03); // test det her
+	segNorm.setRadiusLimits(0.01, 0.08);
+	segNorm.setInputCloud(centerObject);
+	segNorm.setInputNormals(cylinderNormals);
+	segNorm.segment(*inliersCylinder, *coefficientsCylinder);
+
+	double orientation;
+	if (coefficientsCylinder->values.size() > 0) {
+		double xdir = coefficientsCylinder->values[3];
+		double ydir = coefficientsCylinder->values[4];
+		// Calculate orientation
+
+		orientation = atan2(ydir, xdir) * 180 / 3.1415;
+
+		if (orientation < 0) {
+			orientation = orientation + 180;
+		}
+	}
+	else {
+		orientation = 90;
+	}
+
 	wineSpecs.objectCloud = cloudPCAprojection;
-	wineSpecs.orientation = ori;
+	wineSpecs.orientation = orientation;
 	wineSpecs.diameter = diameter;
 	return wineSpecs;
 }

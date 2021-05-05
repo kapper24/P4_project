@@ -11,11 +11,12 @@
 
 // load and compile model
 char error[1000] = "Could not load binary model";
-char HelloObjectXML[]{"C:\\Users\Melvin\source\repos\kapper24\P4_project\MujocoProgram\hello.xml" };
+char HelloObjectXML[]{"C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\MujocoProgram\\hello.xml" };
 char activateSoftware[]{ "C:\\Users\\Melvin\\Documents\\mujoco Licesne\\mjkey.txt" };
 char readFromPCLPath[]{ "C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\MujocoProgram\\ReadfromPCL.txt" };
 int n;
 float diameter = 5;
+float orientation = 90;
 mjModel* m = NULL;                  // MuJoCo model
 mjData* d = NULL;                   // MuJoCo data
 mjvCamera cam;                      // abstract camera
@@ -197,6 +198,11 @@ std::vector<float> close_hand_cup(std::vector<float> oldpos) {
 	return newhandpos;
 }
 
+float fixorient(float zeroorient, float objectorient) {
+	objectorient *= 0.017;
+	float handorient = zeroorient + objectorient;
+	return handorient;
+}
 
 int main(int argc, char *argv[])
 {
@@ -276,6 +282,11 @@ int main(int argc, char *argv[])
 					diameter = std::stof(number) * 100;
 					std::cout << "diameter:" << diameter << "\n";
 				}
+				else if (line.find("orientation") != std::string::npos) {
+					std::string number = line.substr(12, line.size());
+					orientation = std::stof(number)-90;
+					std::cout << "orientation:" << orientation << "\n";
+				}
 			};
 				//std::cout << line << std::endl;
 			
@@ -289,18 +300,22 @@ int main(int argc, char *argv[])
 			{
 			case 1:
 				targetpos = calculate_aperture_closingcylinder(diameter, can);
+				targetpos[0] = fixorient(can[0], orientation);
 				keychange = 0;
 				break;
 			case 2:
 				targetpos = wineglass;
+				targetpos[0] = fixorient(wineglass[0], orientation);
 				keychange = 0;
 				break;
 			case 3:
 				targetpos = calculate_aperture_closing_cup(diameter);
+				targetpos[0] = fixorient(cup[0], orientation);
 				keychange = 0;
 				break;
 			case 4:
-				targetpos = triClose;
+				targetpos = triOpen;
+				targetpos[0] = fixorient(triOpen[0], orientation);
 				keychange = 0;
 				break;
 			case 5:
@@ -314,22 +329,25 @@ int main(int argc, char *argv[])
 			switch (n)
 			{
 			case 1:
-				//targetpos = can;
-				//targetpos = calculate_aperture_closingcylinder(diameter, can);
+			
 				targetpos[4] = 1.03;
+				targetpos[0] = fixorient(can[0], orientation);
 				keychange = 0;
 				break;
 			case 2:
 				targetpos = wineClose;
+				targetpos[0] = fixorient(wineClose[0], orientation);
 				keychange = 0;
 				break;
 			case 3:
 				targetpos = calculate_aperture_closing_cup(diameter);
 				targetpos = close_hand_cup(targetpos);
+				targetpos[0] = fixorient(cup[0], orientation);
 				keychange = 0;
 				break;
 			case 4:
 				targetpos = triClose;
+				targetpos[0] = fixorient(triClose[0], orientation);
 				keychange = 0;
 				break;
 			case 5:
