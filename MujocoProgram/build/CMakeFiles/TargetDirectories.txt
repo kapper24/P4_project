@@ -1,3 +1,0 @@
-C:/Users/Melvin/Documents/GUI_test/build/CMakeFiles/GUI_test.dir
-C:/Users/Melvin/Documents/GUI_test/build/CMakeFiles/ALL_BUILD.dir
-C:/Users/Melvin/Documents/GUI_test/build/CMakeFiles/ZERO_CHECK.dir
