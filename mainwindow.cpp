@@ -162,6 +162,7 @@ void MainWindow::on_IdleButton_clicked()
 }
 void MainWindow::PCLupdate()
 {
+
 #pragma region OpenClose UI
 
 	if (mjHand == HandState::Open)
@@ -181,7 +182,8 @@ void MainWindow::PCLupdate()
 #pragma endregion
 
 	if (isStarted) {
-
+		//timestamp for when process is started
+		auto started = std::chrono::high_resolution_clock::now();
 		//Variables that are reset every loop
 		rs2::pointcloud pc;
 		rs2::points points;
@@ -291,15 +293,22 @@ void MainWindow::PCLupdate()
 					cout << "orientation: " << orientation << endl;
 					cout << "diameter: " << diameter << endl;
 				}
-				
+
+				//timestamp when process is done
+				auto done = std::chrono::high_resolution_clock::now();
+				//cout time between start and end of process in milliseconds
+				auto timePassed = std::chrono::duration_cast<std::chrono::milliseconds>(done - started).count();
+				std::cout << timePassed << "\n";
+				std::ofstream send(projectPath + "log.txt", std::ofstream::trunc);
+				send << "time: " << timePassed << "\n";
+
 				pcl::visualization::PointCloudColorHandlerCustom<WSPoint> cloud_color_h(0, 255, 0);
 				viewer->addPointCloud(filteredObject, cloud_color_h, "cloudname");
 				
 			}
 			viewer->spinOnce(1, true);
 		}
-	}
-	
+	}	
 }
 
 MainWindow::WSPointCloudPtr MainWindow::points2cloud(rs2::points pts)
@@ -707,7 +716,6 @@ float MainWindow::getOrientationRGB(cv::Mat Img)
 
 	return angle;
 }
-
 float MainWindow::PCA2d(std::vector<cv::Point> &pts, cv::Mat Img)
 {//Construct a buffer used by the pca analysis
 	int sz = static_cast<int>(pts.size());

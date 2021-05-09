@@ -37,6 +37,7 @@
 #include <pcl/sample_consensus/sac_model_line.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/common/pca.h>
+#include <chrono>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -71,6 +72,7 @@ private:
     double diameter = 0;
 
     std::string readFromPCLPath = "C:\\Users\\soren\\source\\repos\\P4_project\\MujocoProgram\\ReadfromPCL.txt";
+    std::string projectPath = "C:\\Users\\soren\\source\\repos\\P4_project\\";
     std::string ImageFolderPath = "C:\\Users\\soren\\Desktop\\Semesterprojects\\Semester 4\\VisionImages";
     std::string readFromPythonPath = "C:\\Users\\soren\\source\\repos\\P4_project\\ReadfromPython.txt";
    
