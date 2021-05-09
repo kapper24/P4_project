@@ -123,5 +123,7 @@ private:
     objectSpecs fitWine(WSPointCloudPtr centerObject);
     objectSpecs fitCup(WSPointCloudPtr centerObject);
     objectSpecs fitSphere(WSPointCloudPtr centerObject);
+    float getOrientationRGB(cv::Mat Img);
+    float PCA2d(std::vector<cv::Point>& pts, cv::Mat Img);
 };
 #endif // MAINWINDOW_H
