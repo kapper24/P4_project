@@ -59,6 +59,8 @@ private slots:
     void on_IdleButton_clicked();
     void PCLupdate();
 private:
+    bool isStarted = false;
+    int startClicked = 0;
     QTimer* PCLtimer;
     Ui::MainWindow* ui;
     QPushButton* ui_OpenCloseButton;

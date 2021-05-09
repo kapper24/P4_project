@@ -144,6 +144,9 @@ void MainWindow::on_OpenCloseButton_clicked()
 }
 void MainWindow::on_StartQuitButton_clicked()
 {
+	startClicked++;
+	if (startClicked >= 2)
+		isStarted = !isStarted;
 	std::cout << "clicked Start" << std::endl;
 	
 	//Launch python program
@@ -159,12 +162,26 @@ void MainWindow::on_IdleButton_clicked()
 }
 void MainWindow::PCLupdate()
 {
+#pragma region OpenClose UI
+
 	if (mjHand == HandState::Open)
 		ui_OpenCloseButton->setText("Close");
 	else if (mjHand == HandState::Close)
 		ui_OpenCloseButton->setText("Open");
 	else if (mjHand == HandState::Idle)
 		ui_OpenCloseButton->setText("Open");
+
+#pragma endregion
+#pragma region Start and Quit UI
+	if (isStarted)
+		ui_StartQuitButton->setText("Quit");
+	else {
+		ui_StartQuitButton->setText("Start");
+	}
+#pragma endregion
+
+	if (isStarted) {
+
 		//Variables that are reset every loop
 		rs2::pointcloud pc;
 		rs2::points points;
@@ -173,8 +190,7 @@ void MainWindow::PCLupdate()
 		WSPointCloudPtr objects(new WSPointCloud);
 		WSPointCloudPtr centerObject(new WSPointCloud);
 		WSPointCloudPtr filteredObject(new WSPointCloud);
-		//pcl::ModelCoefficients lineCoeff;
-		
+
 
 		viewer->removeAllShapes();
 		viewer->removeAllPointClouds();
@@ -182,118 +198,109 @@ void MainWindow::PCLupdate()
 		auto depth = frames.get_depth_frame();
 		rs2::frame colorimg = frames.get_color_frame();
 
+		//get point cloud from Depth Image
 		points = pc.calculate(depth);
 		cloud = points2cloud(points);
 		checkCloud newCheckCloud;
 		newCheckCloud = filterCloud(cloud);
 		filteredCloud = newCheckCloud.cloud;
 		bool check = newCheckCloud.check;
-		if (check) {
 
+
+		if (check) {
 			objects = extractObject(filteredCloud);
 			centerObject = getCenterObject(objects);
 			cout << "Size: " << centerObject->size() << "\n";
 			if (centerObject != objects) {
-				//pcl::io::savePCDFileASCII("test.pcd", *centerObject); //til at gemme .pcd filer (fuck den lange funktion)
-				//pipe.stop();
-				//saveRGB2File(serialnumber_, centerObject);
-					objectSpecs objectInfo;
-					if (mjHand == HandState::Idle) {
-						if (centerObject->size() < 200) {
-							graspnum = 5;
-						}
-						else {
-							const int w = colorimg.as<rs2::video_frame>().get_width();
-							const int h = colorimg.as<rs2::video_frame>().get_height();
-							cv::Mat image(cv::Size(w, h), CV_8UC3, (void*)colorimg.get_data(), cv::Mat::AUTO_STEP);
-							if (std::filesystem::is_empty(ImageFolderPath)) {
-								cv::Rect rectROI(280, 0, 720, 720);
-								cv::Mat imgROI = image(rectROI); //Nu er imgROI vores croppede
-								cv::waitKey(100);
-								cv::imwrite(ImageFolderPath + "\\RGBImage.png", imgROI); //write the image to a file as JPEG 
-								std::cout << "pic saved \n";
-							}
+				objectSpecs objectInfo;
 
-							//pipe.start();
-							///////////// return object classification from google here ///////////////////////
-							std::string line;
-							std::cout << "waiting for response from google vision" << std::endl;
-							while (!std::filesystem::is_empty(ImageFolderPath)) {
-
-							}
-							std::ifstream f(readFromPythonPath);
-							std::cout << "readfromPython" << std::endl;
-							cv::waitKey(100);
-							if (getline(f, line))
-								std::cout << line << std::endl;
-							//std::ofstream send("C:\\Users\\Melvin\\Documents\\P4_project\\Read.txt", std::ofstream::trunc);
-							//send << "1 \n";
-							if (line == "Grasp 1") {
-								graspnum = 1;
-								objectInfo = fitCylinder(centerObject);
-								std::cout << line << std::endl;
-							}
-							else if (line == "Grasp 2") {
-								graspnum = 2;
-								objectInfo = fitWine(centerObject);
-								if (objectInfo.diameter < 4) {
-									graspnum = 5;
-								}
-							}
-							else if (line == "Grasp 3") {
-								graspnum = 3;
-								objectInfo = fitCup(centerObject);
-							}
-							else if (line == "Grasp 4") {
-								graspnum = 4;
-								objectInfo = fitSphere(centerObject);
-							}
-							else if (line == "NULL") {
-								graspnum = 1;
-								objectInfo = fitCylinder(centerObject);
-								std::cout << line << std::endl;
-							}
-							f.clear();
-							filteredObject = objectInfo.objectCloud;
-							orientation = objectInfo.orientation;
-							diameter = objectInfo.diameter;
-							cout << "orientation: " << orientation << endl;
-							cout << "diameter: " << diameter << endl;
-						}
+				//if Hand is in Idle mode
+				if (mjHand == HandState::Idle) {
+					//If Object is too small tri grip is used
+					if (centerObject->size() < 200) {
+						graspnum = 5;
 					}
-				else {
-					/*switch (graspnum)
-					{
-					case 1:
-						objectInfo = fitCylinder(centerObject);
-						break;
-					case 2:
-						objectInfo = fitWine(centerObject);
-						break;
-					case 3:
-						objectInfo = fitCup(centerObject);
-						break;
-					default:
-						break;
-					}*/
+					else {
+						//Get RGB Image from rgb stream
+						const int w = colorimg.as<rs2::video_frame>().get_width();
+						const int h = colorimg.as<rs2::video_frame>().get_height();
+						cv::Mat image(cv::Size(w, h), CV_8UC3, (void*)colorimg.get_data(), cv::Mat::AUTO_STEP);
+
+						//if ImageFolderPath is empty, means that no image is currently being processed by python
+						if (std::filesystem::is_empty(ImageFolderPath)) {
+							cv::Rect rectROI(280, 0, 720, 720);
+							cv::Mat imgROI = image(rectROI); //Nu er imgROI vores croppede
+							cv::waitKey(100);
+							cv::imwrite(ImageFolderPath + "\\RGBImage.png", imgROI); //write the image to a file as JPEG 
+
+							//get Orientation from Image using PCA
+							float Orientation = getOrientationRGB(imgROI);
+
+
+							std::cout << "pic saved \n";
+						}
+						///////////// return object classification from google here ///////////////////////
+						std::string line;
+						std::cout << "waiting for response from google vision...." << std::endl;
+						while (!std::filesystem::is_empty(ImageFolderPath)) {
+
+						}
+
+						std::ifstream f(readFromPythonPath);
+						std::cout << "Reading Response" << std::endl;
+						cv::waitKey(100);
+
+						if (getline(f, line))
+							std::cout << line << std::endl;
+						if (line == "Grasp 1") {
+							graspnum = 1;
+							objectInfo = fitCylinder(centerObject);
+							std::cout << line << std::endl;
+						}
+						else if (line == "Grasp 2") {
+							graspnum = 2;
+							objectInfo = fitWine(centerObject);
+							if (objectInfo.diameter < 4) {
+								graspnum = 5;
+							}
+						}
+						else if (line == "Grasp 3") {
+							graspnum = 3;
+							objectInfo = fitCup(centerObject);
+						}
+						else if (line == "Grasp 4") {
+							graspnum = 4;
+							objectInfo = fitSphere(centerObject);
+						}
+						else if (line == "NULL") {
+							graspnum = 1;
+							objectInfo = fitCylinder(centerObject);
+							std::cout << line << std::endl;
+						}
+						f.clear();
+						filteredObject = objectInfo.objectCloud;
+						orientation = objectInfo.orientation;
+						diameter = objectInfo.diameter;
+						cout << "orientation: " << orientation << endl;
+						cout << "diameter: " << diameter << endl;
+					}
+				}
+				else { //If hand is not in idle mode
+					
 					cout << "Grasp " << graspnum << std::endl;
 					cout << "orientation: " << orientation << endl;
 					cout << "diameter: " << diameter << endl;
 				}
-				//objectInfo = fitCylinder(centerObject);
-				/*filteredObject = objectInfo.objectCloud;
-				orientation = objectInfo.orientation;
-				diameter = objectInfo.diameter;
-				cout << "orientation: " << orientation << endl;
-				cout << "diameter: " << diameter << endl;
-				*/
+				
 				pcl::visualization::PointCloudColorHandlerCustom<WSPoint> cloud_color_h(0, 255, 0);
-				viewer->addPointCloud(centerObject, cloud_color_h, "cloudname");
-				//viewer->addLine(lineCoeff, "line");
+				viewer->addPointCloud(filteredObject, cloud_color_h, "cloudname");
+				
 			}
-				viewer->spinOnce(1, true);
+			viewer->spinOnce(1, true);
 		}
 	}
+	
+}
 
 MainWindow::WSPointCloudPtr MainWindow::points2cloud(rs2::points pts)
 {
