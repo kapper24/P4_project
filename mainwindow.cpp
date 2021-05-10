@@ -145,8 +145,10 @@ void MainWindow::on_OpenCloseButton_clicked()
 void MainWindow::on_StartQuitButton_clicked()
 {
 	startClicked++;
-	if (startClicked >= 2)
+	if (startClicked >= 2) {
 		isStarted = !isStarted;
+		startClicked = 0;
+	}
 	std::cout << "clicked Start" << std::endl;
 	
 	//Launch python program
@@ -235,8 +237,8 @@ void MainWindow::PCLupdate()
 							cv::waitKey(100);
 							cv::imwrite(ImageFolderPath + "\\RGBImage.png", imgROI); //write the image to a file as JPEG 
 
-							//get Orientation from Image using PCA
-							float Orientation = getOrientationRGB(imgROI);
+							
+							
 
 
 							std::cout << "pic saved \n";
@@ -283,8 +285,8 @@ void MainWindow::PCLupdate()
 						filteredObject = objectInfo.objectCloud;
 						orientation = objectInfo.orientation;
 						diameter = objectInfo.diameter;
-						cout << "orientation: " << orientation << endl;
-						cout << "diameter: " << diameter << endl;
+					//	cout << "orientation: " << orientation << endl;
+					//	cout << "diameter: " << diameter << endl;
 					}
 				}
 				else { //If hand is not in idle mode
@@ -299,7 +301,7 @@ void MainWindow::PCLupdate()
 				//cout time between start and end of process in milliseconds
 				auto timePassed = std::chrono::duration_cast<std::chrono::milliseconds>(done - started).count();
 				std::cout << timePassed << "\n";
-				std::ofstream send(projectPath + "log.txt", std::ofstream::trunc);
+				std::ofstream send(projectPath + "log.txt", std::ofstream::app);
 				send << "time: " << timePassed << "\n";
 
 				pcl::visualization::PointCloudColorHandlerCustom<WSPoint> cloud_color_h(0, 255, 0);
@@ -686,60 +688,4 @@ MainWindow::objectSpecs MainWindow::fitSphere(WSPointCloudPtr centerObject) {
 	newSphere.diameter = radius * 2;
 
 	return newSphere;
-}
-
-float MainWindow::getOrientationRGB(cv::Mat Img)
-{
-	cv::Mat gray;
-	cv::cvtColor(Img, gray, cv::COLOR_BGR2GRAY);
-	// Convert image to binary
-	cv::Mat bw;
-	threshold(gray, bw, 50, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
-	// Find all the contours in the thresholded image
-	std::vector<std::vector<cv::Point> > contours;
-	findContours(bw, contours, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
-	float angle;
-	for (size_t i = 0; i < contours.size(); i++)
-	{
-		// Calculate the area of each contour
-		double area = contourArea(contours[i]);
-		// Ignore contours that are too small or too large
-		if (area < 1e2 || 1e5 < area) continue;
-		// Draw each contour only for visualisation purposes
-		//drawContours(src, contours, static_cast<int>(i), Scalar(0, 0, 255), 2);
-		//Find the orientation of each shape
-		angle = PCA2d(contours[i], Img);
-		std::cout << "contour " << i << "angle " << angle;
-	}	
-
-
-
-	return angle;
-}
-float MainWindow::PCA2d(std::vector<cv::Point> &pts, cv::Mat Img)
-{//Construct a buffer used by the pca analysis
-	int sz = static_cast<int>(pts.size());
-	cv::Mat data_pts = cv::Mat(sz, 2, CV_64F);
-	for (int i = 0; i < data_pts.rows; i++)
-	{
-		data_pts.at<double>(i, 0) = pts[i].x;
-		data_pts.at<double>(i, 1) = pts[i].y;
-	}
-	//Perform PCA analysis
-	cv::PCA pca_analysis(data_pts, cv::Mat(), cv::PCA::DATA_AS_ROW);
-	//Store the center of the object
-	cv::Point cntr = cv::Point(static_cast<int>(pca_analysis.mean.at<double>(0, 0)),
-		static_cast<int>(pca_analysis.mean.at<double>(0, 1)));
-	//Store the eigenvalues and eigenvectors
-	std::vector<cv::Point2d> eigen_vecs(2);
-	std::vector<double> eigen_val(2);
-	for (int i = 0; i < 2; i++)
-	{
-		eigen_vecs[i] = cv::Point2d(pca_analysis.eigenvectors.at<double>(i, 0),
-			pca_analysis.eigenvectors.at<double>(i, 1));
-		eigen_val[i] = pca_analysis.eigenvalues.at<double>(i);
-	}
-	
-	double angle = atan2(eigen_vecs[0].y, eigen_vecs[0].x); // orientation in radians
-	return angle;
 }
