@@ -186,6 +186,7 @@ void MainWindow::PCLupdate()
 	if (isStarted) {
 		//timestamp for when process is started
 		auto started = std::chrono::high_resolution_clock::now();
+
 		//Variables that are reset every loop
 		rs2::pointcloud pc;
 		rs2::points points;
@@ -236,26 +237,32 @@ void MainWindow::PCLupdate()
 							cv::Mat imgROI = image(rectROI); //Nu er imgROI vores croppede
 							cv::waitKey(100);
 							cv::imwrite(ImageFolderPath + "\\RGBImage.png", imgROI); //write the image to a file as JPEG 
-
+							
 							
 							
 
 
 							std::cout << "pic saved \n";
 						}
+						auto gtimeStart = std::chrono::high_resolution_clock::now();
 						///////////// return object classification from google here ///////////////////////
 						std::string line;
 						std::cout << "waiting for response from google vision...." << std::endl;
 						while (!std::filesystem::is_empty(ImageFolderPath)) {
 
 						}
-
+						//timestamp when process is done
+						auto gtimeDone = std::chrono::high_resolution_clock::now();
+						//cout time between start and end of process in milliseconds
+						auto gtp = std::chrono::duration_cast<std::chrono::milliseconds>(gtimeDone - gtimeStart).count();
+						float tpg = float(gtp) / 1000.00;
+						std::cout << "google: " << tpg << std::endl;
 						std::ifstream f(readFromPythonPath);
 						std::cout << "Reading Response" << std::endl;
 						cv::waitKey(100);
 
 						if (getline(f, line))
-							std::cout << line << std::endl;
+						//	std::cout << line << std::endl;
 						if (line == "Grasp 1") {
 							graspnum = 1;
 							objectInfo = fitCylinder(centerObject);
@@ -300,9 +307,10 @@ void MainWindow::PCLupdate()
 				auto done = std::chrono::high_resolution_clock::now();
 				//cout time between start and end of process in milliseconds
 				auto timePassed = std::chrono::duration_cast<std::chrono::milliseconds>(done - started).count();
-				std::cout << timePassed << "\n";
+				float tp = float(timePassed)/1000.00;
+				std::cout << tp << "\n";
 				std::ofstream send(projectPath + "log.txt", std::ofstream::app);
-				send << "time: " << timePassed << "\n";
+				send << tp << "\n";
 
 				pcl::visualization::PointCloudColorHandlerCustom<WSPoint> cloud_color_h(0, 255, 0);
 				viewer->addPointCloud(filteredObject, cloud_color_h, "cloudname");
@@ -311,6 +319,12 @@ void MainWindow::PCLupdate()
 			viewer->spinOnce(1, true);
 		}
 	}	
+	else if (!isStarted && mjHand != HandState::Idle) {
+		std::ofstream send("C:\\Users\\Melvin\\Documents\\GUI_test\\ReadfromPCL.txt", std::ofstream::trunc);
+		send << "Idle" << "\n";
+		openclose = 0;
+		mjHand = HandState::Idle;
+	}
 }
 
 MainWindow::WSPointCloudPtr MainWindow::points2cloud(rs2::points pts)
@@ -622,7 +636,7 @@ MainWindow::objectSpecs MainWindow::fitCup(WSPointCloudPtr centerObject) {
 
 		cupSpecs.objectCloud = cloudPCAprojection;
 	
-		cupSpecs.diameter = diameter - 0.03;
+		cupSpecs.diameter = diameter;
 	}
 
 	if (coefficientsCylinder->values.size() > 0) {
