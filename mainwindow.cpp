@@ -157,7 +157,7 @@ void MainWindow::on_StartQuitButton_clicked()
 }
 void MainWindow::on_IdleButton_clicked()
 {
-	std::ofstream send("C:\\Users\\Melvin\\Documents\\GUI_test\\ReadfromPCL.txt", std::ofstream::trunc);
+	std::ofstream send(readFromPCLPath, std::ofstream::trunc);
 	send << "Idle"<< "\n";
 	openclose = 0;
 	mjHand = HandState::Idle;
@@ -184,9 +184,6 @@ void MainWindow::PCLupdate()
 #pragma endregion
 
 	if (isStarted) {
-		//timestamp for when process is started
-		auto started = std::chrono::high_resolution_clock::now();
-
 		//Variables that are reset every loop
 		rs2::pointcloud pc;
 		rs2::points points;
@@ -215,15 +212,27 @@ void MainWindow::PCLupdate()
 		if (check) {
 			objects = extractObject(filteredCloud);
 			centerObject = getCenterObject(objects);
-			cout << "Size: " << centerObject->size() << "\n";
+		//	cout << "Size: " << centerObject->size() << "\n";
 			if (centerObject != objects) {
 				objectSpecs objectInfo;
 
 				//if Hand is in Idle mode
 				if (mjHand == HandState::Idle) {
 					//If Object is too small tri grip is used
-					if (centerObject->size() < 200) {
-						graspnum = 5;
+					graspnum = 5;
+					WSPointCloudPtr cloudPCAprojection(new WSPointCloud);
+					pcl::PCA<WSPoint> pca;
+					pca.setInputCloud(centerObject);
+					pca.project(*centerObject, *cloudPCAprojection);
+					WSPoint minPt;
+					WSPoint maxPt;
+					pcl::getMinMax3D(*cloudPCAprojection, minPt, maxPt);
+					double objectSizez = abs(minPt.z) + abs(maxPt.z);
+					double objectSizey = abs(minPt.y) + abs(maxPt.y);
+					std::cout << objectSizez <<" " << objectSizey << std::endl;
+						
+					if (objectSizez <= 0.03 || objectSizey <= 0.03) {
+							std::cout << "tripod" << endl;
 					}
 					else {
 						//Get RGB Image from rgb stream
@@ -242,23 +251,17 @@ void MainWindow::PCLupdate()
 							
 
 
-							std::cout << "pic saved \n";
+							//std::cout << "pic saved \n";
 						}
-						auto gtimeStart = std::chrono::high_resolution_clock::now();
 						///////////// return object classification from google here ///////////////////////
 						std::string line;
-						std::cout << "waiting for response from google vision...." << std::endl;
+					//	std::cout << "waiting for response from google vision...." << std::endl;
 						while (!std::filesystem::is_empty(ImageFolderPath)) {
 
 						}
-						//timestamp when process is done
-						auto gtimeDone = std::chrono::high_resolution_clock::now();
-						//cout time between start and end of process in milliseconds
-						auto gtp = std::chrono::duration_cast<std::chrono::milliseconds>(gtimeDone - gtimeStart).count();
-						float tpg = float(gtp) / 1000.00;
-						std::cout << "google: " << tpg << std::endl;
+					
 						std::ifstream f(readFromPythonPath);
-						std::cout << "Reading Response" << std::endl;
+						//std::cout << "Reading Response" << std::endl;
 						cv::waitKey(100);
 
 						if (getline(f, line))
@@ -266,7 +269,7 @@ void MainWindow::PCLupdate()
 						if (line == "Grasp 1") {
 							graspnum = 1;
 							objectInfo = fitCylinder(centerObject);
-							std::cout << line << std::endl;
+							//std::cout << line << std::endl;
 						}
 						else if (line == "Grasp 2") {
 							graspnum = 2;
@@ -292,6 +295,9 @@ void MainWindow::PCLupdate()
 						filteredObject = objectInfo.objectCloud;
 						orientation = objectInfo.orientation;
 						diameter = objectInfo.diameter;
+						std::ofstream send(projectPath + "log.txt", std::ofstream::app);
+						send << diameter << " " << orientation << "\n";
+						std::cout << "orientation " << orientation << "\n" << "size " << diameter << "\n" << line << "\n" << "\n";
 					//	cout << "orientation: " << orientation << endl;
 					//	cout << "diameter: " << diameter << endl;
 					}
@@ -303,14 +309,8 @@ void MainWindow::PCLupdate()
 					cout << "diameter: " << diameter << endl;
 				}
 
-				//timestamp when process is done
-				auto done = std::chrono::high_resolution_clock::now();
-				//cout time between start and end of process in milliseconds
-				auto timePassed = std::chrono::duration_cast<std::chrono::milliseconds>(done - started).count();
-				float tp = float(timePassed)/1000.00;
-				std::cout << tp << "\n";
-				std::ofstream send(projectPath + "log.txt", std::ofstream::app);
-				send << tp << "\n";
+			
+				
 
 				pcl::visualization::PointCloudColorHandlerCustom<WSPoint> cloud_color_h(0, 255, 0);
 				viewer->addPointCloud(filteredObject, cloud_color_h, "cloudname");

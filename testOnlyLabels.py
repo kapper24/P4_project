@@ -24,7 +24,6 @@ def detectObjects(path):
         #print('Labels:')
         for label in labels:
             print(label.description)
-            #print(label.description)
             if ('Tin can' in label.description) or ('Canteen'in label.description) or ('Plastic bottle'in label.description) or ('Flask'in label.description) or ('Water'in label.description) or ('Water bottle'in label.description) or ('Bottle' in label.description) or ('Cylinder' in label.description) or ('Beverage Can' in label.description) or ('Aluminum Can' in label.description):
                 print('Tin can: Grasp 1')
                 return 'Grasp 1'
@@ -34,7 +33,7 @@ def detectObjects(path):
             elif ('Cup'  in label.description) or ('Cofee cup'  in label.description):
                 print('Cup: Grasp 3')
                 return 'Grasp 3'
-            elif ('Tennis ball' in label.description) or ('Apple' in label.description):
+            elif ('Tennis ball' in label.description) or ('Apple' in label.description) or ('Ball' in label.description) or ('Ball game' in label.description) or ('Pearl onion' in label.description) or ('Onion' in label.description) or ('Yellow onion' in label.description) or ('Peach' in label.description) or ('Shallot' in label.description) or ('Garlic' in label.description) or ('Tomato' in label.description) or ('Potato' in label.description) or ('Citron' in label.description) or ('Lime' in label.description) or ('Lemon' in label.description) or ('Citrus' in label.description) or ('Orange' in label.description) or ('Bitter orange' in label.description) or ('Mandarin orange' in label.description) or ('Tangerine' in label.description) or ('Clementine' in label.description) or ('Valencia orange' in label.description) or ('Mcintosh' in label.description):
                 print('Sphere: Grasp 4')
                 return 'Grasp 4'
         print('nothing detected')
@@ -43,7 +42,7 @@ def detectObjects(path):
 
 while True:
     # The name of the image file to annotate
-    directory = 'C:/Users/soren/Desktop/Semesterprojects/Semester 4/VisionImages'
+    directory = 'C:/Users/Melvin/source/repos/kapper24/P4_project/images'
     dirs = os.listdir(directory)
     if dirs.__sizeof__()>41:
         filename = dirs[0]
@@ -51,7 +50,7 @@ while True:
         imagePath = os.path.join(directory, filename)
         time.sleep(0.1)
         #Detect objects and send to txt file
-        write = open('C:/Users/soren/source/repos/P4_project/ReadfromPython.txt','w')
+        write = open('C:/Users/Melvin/source/repos/kapper24/P4_project/ReadfromPython.txt','w')
         write.write(detectObjects(imagePath))
         write.close()
         time.sleep(0.1)
