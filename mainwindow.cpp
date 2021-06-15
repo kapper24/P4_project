@@ -5,9 +5,9 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 #include <pcl/visualization/pcl_visualizer.h>
-
+#include <pcl/io/pcd_io.h>
 pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
-
+std::string testpath = "C:\\Users\\Melvin\\Desktop\\img";
 MainWindow::MainWindow(QWidget* parent)
 	: QMainWindow(parent)
 	, ui(new Ui::MainWindow)
@@ -65,7 +65,7 @@ MainWindow::MainWindow(QWidget* parent)
 	viewer->setCameraPosition(0.0, 0.0, -0.5, 0.0, -1.0, 0.0, vp);
 	viewer->setSize(800, 600);
 	viewer->setBackgroundColor(bckgr_gray_level, bckgr_gray_level, bckgr_gray_level, vp);
-	viewer->addCoordinateSystem(0.1);
+	//viewer->addCoordinateSystem(0.1);
 
 	/*
 	for (rs2::sensor& sensor : sensors) {
@@ -184,6 +184,9 @@ void MainWindow::PCLupdate()
 #pragma endregion
 
 	if (isStarted) {
+
+		
+
 		//Variables that are reset every loop
 		rs2::pointcloud pc;
 		rs2::points points;
@@ -203,15 +206,20 @@ void MainWindow::PCLupdate()
 		//get point cloud from Depth Image
 		points = pc.calculate(depth);
 		cloud = points2cloud(points);
+		pcl::io::savePCDFileASCII(testpath+"\\unfiltered.pcd", *cloud);
+
 		checkCloud newCheckCloud;
 		newCheckCloud = filterCloud(cloud);
 		filteredCloud = newCheckCloud.cloud;
+		pcl::io::savePCDFileASCII(testpath + "\\Voxelfiltered.pcd", *filteredCloud);
 		bool check = newCheckCloud.check;
 
 
 		if (check) {
 			objects = extractObject(filteredCloud);
+			pcl::io::savePCDFileASCII(testpath + "\\AllObjects.pcd", *objects);
 			centerObject = getCenterObject(objects);
+			pcl::io::savePCDFileASCII(testpath + "\\CenterObject.pcd", *centerObject);
 		//	cout << "Size: " << centerObject->size() << "\n";
 			if (centerObject != objects) {
 				objectSpecs objectInfo;
@@ -219,7 +227,7 @@ void MainWindow::PCLupdate()
 				//if Hand is in Idle mode
 				if (mjHand == HandState::Idle) {
 					//If Object is too small tri grip is used
-					graspnum = 5;
+				graspnum = 5;
 					WSPointCloudPtr cloudPCAprojection(new WSPointCloud);
 					pcl::PCA<WSPoint> pca;
 					pca.setInputCloud(centerObject);
@@ -230,15 +238,24 @@ void MainWindow::PCLupdate()
 					double objectSizez = abs(minPt.z) + abs(maxPt.z);
 					double objectSizey = abs(minPt.y) + abs(maxPt.y);
 					std::cout << objectSizez <<" " << objectSizey << std::endl;
-						
-					if (objectSizez <= 0.03 || objectSizey <= 0.03) {
-							std::cout << "tripod" << endl;
+					if (centerObject->size() < 50) {
+						//std::cout << "tripod" << endl;
+						graspnum = 5;
+						orientation = 90;
+					}
+					else if (objectSizez <= 0.03 || objectSizey <= 0.03) {
+						//std::cout << "tripod" << endl;
+							graspnum = 5;
+							orientation = 90;
 					}
 					else {
 						//Get RGB Image from rgb stream
 						const int w = colorimg.as<rs2::video_frame>().get_width();
 						const int h = colorimg.as<rs2::video_frame>().get_height();
 						cv::Mat image(cv::Size(w, h), CV_8UC3, (void*)colorimg.get_data(), cv::Mat::AUTO_STEP);
+
+						cv::imwrite(testpath + "\\RGBImage.png", image);
+						cv::waitKey(100);
 
 						//if ImageFolderPath is empty, means that no image is currently being processed by python
 						if (std::filesystem::is_empty(ImageFolderPath)) {
@@ -266,23 +283,23 @@ void MainWindow::PCLupdate()
 
 						if (getline(f, line))
 						//	std::cout << line << std::endl;
-						if (line == "Grasp 1") {
+						if (line == "Class 1") {
 							graspnum = 1;
 							objectInfo = fitCylinder(centerObject);
 							//std::cout << line << std::endl;
 						}
-						else if (line == "Grasp 2") {
+						else if (line == "Class 2") {
 							graspnum = 2;
 							objectInfo = fitWine(centerObject);
 							if (objectInfo.diameter < 4) {
 								graspnum = 5;
 							}
 						}
-						else if (line == "Grasp 3") {
+						else if (line == "Class 3") {
 							graspnum = 3;
 							objectInfo = fitCup(centerObject);
 						}
-						else if (line == "Grasp 4") {
+						else if (line == "Class 4") {
 							graspnum = 4;
 							objectInfo = fitSphere(centerObject);
 						}
@@ -295,6 +312,7 @@ void MainWindow::PCLupdate()
 						filteredObject = objectInfo.objectCloud;
 						orientation = objectInfo.orientation;
 						diameter = objectInfo.diameter;
+						pcl::io::savePCDFileASCII(testpath + "\\FittedObject.pcd", *filteredObject);
 						std::ofstream send(projectPath + "log.txt", std::ofstream::app);
 						send << diameter << " " << orientation << "\n";
 						std::cout << "orientation " << orientation << "\n" << "size " << diameter << "\n" << line << "\n" << "\n";
@@ -304,19 +322,22 @@ void MainWindow::PCLupdate()
 				}
 				else { //If hand is not in idle mode
 					
-					cout << "Grasp " << graspnum << std::endl;
+					cout << "Class " << graspnum << std::endl;
 					cout << "orientation: " << orientation << endl;
 					cout << "diameter: " << diameter << endl;
 				}
 
 			
 				
+				
 
 				pcl::visualization::PointCloudColorHandlerCustom<WSPoint> cloud_color_h(0, 255, 0);
-				viewer->addPointCloud(filteredObject, cloud_color_h, "cloudname");
-				
+				viewer->removeAllShapes();
+				viewer->removeAllPointClouds();
+				viewer->addPointCloud(centerObject, cloud_color_h, "cloudname");
 			}
 			viewer->spinOnce(1, true);
+			
 		}
 	}	
 	else if (!isStarted && mjHand != HandState::Idle) {
@@ -635,7 +656,6 @@ MainWindow::objectSpecs MainWindow::fitCup(WSPointCloudPtr centerObject) {
 		double diameter = abs(minPt.x) + abs(maxPt.x);
 
 		cupSpecs.objectCloud = cloudPCAprojection;
-	
 		cupSpecs.diameter = diameter;
 	}
 
