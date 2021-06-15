@@ -11,9 +11,9 @@
 
 // load and compile model
 char error[1000] = "Could not load binary model";
-char HelloObjectXML[]{"C:\\Users\\soren\\source\\repos\\P4_project\\MujocoProgram\\hello.xml" };
-char activateSoftware[]{ "C:\\mujoco200_win64\\bin\\mjkey.txt" };
-char readFromPCLPath[]{ "C:\\Users\\soren\\source\\repos\\P4_project\\MujocoProgram\\ReadfromPCL.txt" };
+char HelloObjectXML[]{ "C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\MujocoProgram\\hello.xml" };
+char activateSoftware[]{ "C:\\Users\\Melvin\\Documents\\mujoco Licesne\\mjkey.txt" };
+char readFromPCLPath[]{ "C:\\Users\\Melvin\\source\\repos\\kapper24\\P4_project\\MujocoProgram\\ReadfromPCL.txt" };
 int n;
 float diameter = 5;
 float orientation = 90;

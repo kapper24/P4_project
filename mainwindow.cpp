@@ -7,7 +7,7 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/io/pcd_io.h>
 pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
-std::string testpath = "C:\\Users\\Melvin\\Desktop\\img";
+
 MainWindow::MainWindow(QWidget* parent)
 	: QMainWindow(parent)
 	, ui(new Ui::MainWindow)
@@ -206,20 +206,20 @@ void MainWindow::PCLupdate()
 		//get point cloud from Depth Image
 		points = pc.calculate(depth);
 		cloud = points2cloud(points);
-		pcl::io::savePCDFileASCII(testpath+"\\unfiltered.pcd", *cloud);
+
 
 		checkCloud newCheckCloud;
 		newCheckCloud = filterCloud(cloud);
 		filteredCloud = newCheckCloud.cloud;
-		pcl::io::savePCDFileASCII(testpath + "\\Voxelfiltered.pcd", *filteredCloud);
+		
 		bool check = newCheckCloud.check;
 
 
 		if (check) {
 			objects = extractObject(filteredCloud);
-			pcl::io::savePCDFileASCII(testpath + "\\AllObjects.pcd", *objects);
+		
 			centerObject = getCenterObject(objects);
-			pcl::io::savePCDFileASCII(testpath + "\\CenterObject.pcd", *centerObject);
+			
 		//	cout << "Size: " << centerObject->size() << "\n";
 			if (centerObject != objects) {
 				objectSpecs objectInfo;
@@ -254,7 +254,7 @@ void MainWindow::PCLupdate()
 						const int h = colorimg.as<rs2::video_frame>().get_height();
 						cv::Mat image(cv::Size(w, h), CV_8UC3, (void*)colorimg.get_data(), cv::Mat::AUTO_STEP);
 
-						cv::imwrite(testpath + "\\RGBImage.png", image);
+						
 						cv::waitKey(100);
 
 						//if ImageFolderPath is empty, means that no image is currently being processed by python
@@ -312,7 +312,7 @@ void MainWindow::PCLupdate()
 						filteredObject = objectInfo.objectCloud;
 						orientation = objectInfo.orientation;
 						diameter = objectInfo.diameter;
-						pcl::io::savePCDFileASCII(testpath + "\\FittedObject.pcd", *filteredObject);
+						
 						std::ofstream send(projectPath + "log.txt", std::ofstream::app);
 						send << diameter << " " << orientation << "\n";
 						std::cout << "orientation " << orientation << "\n" << "size " << diameter << "\n" << line << "\n" << "\n";
