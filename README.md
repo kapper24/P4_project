@@ -6,7 +6,7 @@ This project investigates the problem of improving current hand prostheses by im
 
 ### The project is divided into two programs a Point cloud library program and a mujoco simulation
 # PCL program
-The pcl program is divided into two files, a mainWindow.cpp and mainWindow.h.
+The pcl program is divided into two files, a p4project.cpp, mainWindow.cpp and mainWindow.h.
 https://github.com/kapper24/P4_project/blob/master/mainwindow.cpp
 https://github.com/kapper24/P4_project/blob/master/mainwindow.h
 
